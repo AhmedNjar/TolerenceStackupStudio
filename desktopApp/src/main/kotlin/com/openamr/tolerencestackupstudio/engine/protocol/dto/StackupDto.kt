@@ -16,6 +16,7 @@ data class AnalyzeStackupRequestDto(
 data class ClosingEquationDto(
     val id: String,
     val label: String,
+    val name: String = "",
     val expression: String,
     val specLimits: SpecLimitsDto? = null,
 )

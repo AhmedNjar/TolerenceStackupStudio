@@ -58,7 +58,7 @@ fun ComponentDataGrid(viewModel: StackupViewModel, onOpenStandardLookup: (compon
 
 @Composable
 private fun HeaderRow() {
-    val headers = listOf("Label", "Name", "Kind", "Nominal", "+Upper", "-Lower", "Distribution", "Std Fit", "")
+    val headers = listOf("Label", "Name", "Kind", "Nominal", "Upper Dev", "Lower Dev", "Distribution", "Std Fit", "")
     Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)).padding(4.dp)) {
         headers.forEachIndexed { i, h ->
             Text(h, modifier = Modifier.width(COLUMN_WIDTHS[i]).padding(horizontal = 4.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)

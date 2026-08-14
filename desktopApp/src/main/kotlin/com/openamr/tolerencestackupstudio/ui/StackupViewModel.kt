@@ -4,16 +4,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import com.openamr.tolerencestackupstudio.engine.EngineClient
-import com.openamr.tolerencestackupstudio.engine.protocol.dto.AnalysisMethod
-import com.openamr.tolerencestackupstudio.engine.protocol.dto.AnalysisOptionsDto
-import com.openamr.tolerencestackupstudio.engine.protocol.dto.AnalyzeStackupRequestDto
-import com.openamr.tolerencestackupstudio.engine.protocol.dto.AnalyzeStackupResponseDto
-import com.openamr.tolerencestackupstudio.engine.protocol.dto.ClosingEquationDto
-import com.openamr.tolerencestackupstudio.engine.protocol.dto.ComponentDto
-import com.openamr.tolerencestackupstudio.engine.protocol.dto.ComponentKind
-import com.openamr.tolerencestackupstudio.engine.protocol.dto.DistributionType
-import com.openamr.tolerencestackupstudio.engine.protocol.dto.StandardFitDto
+import com.openamr.tolerencestackupstudio.engine.protocol.dto.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import java.util.UUID
 
 enum class AppScreen { EDITOR, RESULTS }
@@ -24,7 +22,11 @@ enum class AppScreen { EDITOR, RESULTS }
  * consistent with Phase 1's Main.kt — not an MVI setup. If this app grows
  * more chains/screens later, that's a reasonable point to reconsider.
  */
-class StackupViewModel(private val engineClient: EngineClient) {
+@OptIn(FlowPreview::class)
+class StackupViewModel(
+    private val engineClient: EngineClient,
+    private val viewModelScope: CoroutineScope
+) {
 
     var currentScreen by mutableStateOf(AppScreen.EDITOR)
         private set
@@ -57,11 +59,35 @@ class StackupViewModel(private val engineClient: EngineClient) {
                 ),
                 ComponentDto(
                     id = newId(), label = "D", name = "Shaft diameter", kind = ComponentKind.LINEAR,
-                    nominal = 25.0, upperTol = 0.0, lowerTol = 0.020, distribution = DistributionType.NORMAL_3S,
+                    nominal = 25.0, upperTol = 0.0, lowerTol = -0.020, distribution = DistributionType.NORMAL_3S,
                 ),
             )
         )
-        closingEquations.add(ClosingEquationDto(id = newId(), label = "Z1", expression = "B - D"))
+        closingEquations.add(ClosingEquationDto(id = newId(), label = "Z1", name = "Shaft/Bore Gap", expression = "B - D"))
+
+        // Watch for changes and run live analysis for nominals
+        snapshotFlow { components.toList() to closingEquations.toList() }
+            .debounce(300)
+            .onEach { runLiveAnalysis() }
+            .launchIn(viewModelScope)
+    }
+
+    private suspend fun runLiveAnalysis() {
+        if (components.isEmpty() || closingEquations.isEmpty()) return
+        try {
+            val response = engineClient.analyzeStackup(
+                AnalyzeStackupRequestDto(
+                    chainId = "main-chain-live",
+                    components = components.toList(),
+                    closingEquations = closingEquations.toList(),
+                    options = AnalysisOptionsDto(methods = listOf(AnalysisMethod.WORST_CASE)),
+                )
+            )
+            // Update lastResult with fresh nominals, but keep existing detailed results if any
+            lastResult = response
+        } catch (t: Throwable) {
+            // Ignore live analysis errors (e.g. partial formula while typing)
+        }
     }
 
     fun selectComponent(id: String?) {
@@ -93,6 +119,7 @@ class StackupViewModel(private val engineClient: EngineClient) {
             ClosingEquationDto(
                 id = newId(),
                 label = "Z${closingEquations.size + 1}",
+                name = "",
                 expression = "",
             )
         )
@@ -105,6 +132,12 @@ class StackupViewModel(private val engineClient: EngineClient) {
     fun updateClosingEquation(id: String, transform: (ClosingEquationDto) -> ClosingEquationDto) {
         val index = closingEquations.indexOfFirst { it.id == id }
         if (index >= 0) closingEquations[index] = transform(closingEquations[index])
+    }
+
+    /** Returns the calculated nominal value for a closing equation from the last result. */
+    fun getCalculatedNominal(closingId: String): Double? {
+        val result = lastResult?.results?.find { it.closingId == closingId } ?: return null
+        return result.worstCase?.nominal ?: result.rss?.nominal
     }
 
     /** Applies an ISO286/ISO2768 lookup result to a component's tolerances,

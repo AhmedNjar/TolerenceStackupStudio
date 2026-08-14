@@ -15,7 +15,11 @@ some unrelated sympy symbol/function.
 from __future__ import annotations
 
 import sympy as sp
-from sympy.parsing.sympy_parser import parse_expr, standard_transformations
+from sympy.parsing.sympy_parser import (
+    convert_xor,
+    parse_expr,
+    standard_transformations,
+)
 
 from tolerance_engine.models import Component
 
@@ -51,7 +55,7 @@ def parse_expression(expression: str, symbols: dict[str, sp.Symbol]) -> sp.Expr:
             expression,
             local_dict=local_dict,
             global_dict=global_dict,
-            transformations=standard_transformations,
+            transformations=(*standard_transformations, convert_xor),
             evaluate=True,
         )
     except Exception as exc:  # noqa: BLE001 - re-raised as a domain-specific error

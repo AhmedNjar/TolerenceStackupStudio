@@ -24,12 +24,15 @@ def worst_case(expression: str, components: list[Component]) -> dict[str, Any]:
     min_dev = 0.0
     for c in components:
         d_dx = derivatives[c.label]
-        if d_dx >= 0:
-            max_dev += d_dx * c.upperTol
-            min_dev += d_dx * (-c.lowerTol)
-        else:
-            max_dev += d_dx * (-c.lowerTol)
-            min_dev += d_dx * c.upperTol
+
+        # Additive logic: both upperTol and lowerTol are deviations from nominal.
+        # We find which deviation pushes the dimension further in the direction
+        # of the sensitivity d_dx.
+        dev1 = d_dx * c.upperTol
+        dev2 = d_dx * c.lowerTol
+
+        max_dev += max(dev1, dev2)
+        min_dev += min(dev1, dev2)
 
     return {
         "nominal": nominal,

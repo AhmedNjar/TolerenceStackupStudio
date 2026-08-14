@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,13 +22,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.ClosingEquationDto
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.SpecLimitsDto
 import com.openamr.tolerencestackupstudio.ui.StackupViewModel
 
-private val COLUMN_WIDTHS = listOf(60, 200, 90, 90, 40).map { it.dp }
+private val COLUMN_WIDTHS = listOf(50, 140, 180, 90, 80, 80, 40).map { it.dp }
 
 @Composable
 fun ClosingEquationDataGrid(viewModel: StackupViewModel) {
@@ -35,8 +38,10 @@ fun ClosingEquationDataGrid(viewModel: StackupViewModel) {
             HeaderRow()
             LazyColumn {
                 items(viewModel.closingEquations, key = { it.id }) { equation ->
+                    val nominal = viewModel.getCalculatedNominal(equation.id)
                     EquationRow(
                         equation = equation,
+                        calculatedNominal = nominal,
                         onChange = { updated -> viewModel.updateClosingEquation(equation.id) { updated } },
                         onDelete = { viewModel.removeClosingEquation(equation.id) },
                     )
@@ -53,7 +58,7 @@ fun ClosingEquationDataGrid(viewModel: StackupViewModel) {
 
 @Composable
 private fun HeaderRow() {
-    val headers = listOf("Label", "Equation (Expression)", "LSL", "USL", "")
+    val headers = listOf("Label", "Name", "Equation", "Nominal", "Lower", "Upper", "")
     Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)).padding(4.dp)) {
         headers.forEachIndexed { i, h ->
             Text(h, modifier = Modifier.width(COLUMN_WIDTHS[i]).padding(horizontal = 4.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
@@ -64,6 +69,7 @@ private fun HeaderRow() {
 @Composable
 private fun EquationRow(
     equation: ClosingEquationDto,
+    calculatedNominal: Double?,
     onChange: (ClosingEquationDto) -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -77,13 +83,37 @@ private fun EquationRow(
             onCommit = { onChange(equation.copy(label = it)) },
         )
         LabeledTextField(
-            value = equation.expression,
+            value = equation.name,
             width = COLUMN_WIDTHS[1],
+            onCommit = { onChange(equation.copy(name = it)) },
+        )
+        LabeledTextField(
+            value = equation.expression,
+            width = COLUMN_WIDTHS[2],
             onCommit = { onChange(equation.copy(expression = it)) },
         )
+        
+        // Calculated Nominal (Read-only)
+        OutlinedTextField(
+            value = calculatedNominal?.let { "%.4f".format(it) } ?: "---",
+            onValueChange = {},
+            modifier = Modifier.width(COLUMN_WIDTHS[3]).padding(horizontal = 2.dp),
+            readOnly = true,
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodySmall.copy(
+                color = if (calculatedNominal != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (calculatedNominal != null) FontWeight.Bold else FontWeight.Normal
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                disabledBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            )
+        )
+
         OptionalNumericField(
             value = equation.specLimits?.lsl,
-            width = COLUMN_WIDTHS[2],
+            width = COLUMN_WIDTHS[4],
             onCommit = { lsl ->
                 val current = equation.specLimits ?: SpecLimitsDto(usl = 0.0, lsl = 0.0)
                 onChange(equation.copy(specLimits = if (lsl == null) null else current.copy(lsl = lsl)))
@@ -91,15 +121,15 @@ private fun EquationRow(
         )
         OptionalNumericField(
             value = equation.specLimits?.usl,
-            width = COLUMN_WIDTHS[3],
+            width = COLUMN_WIDTHS[5],
             onCommit = { usl ->
                 val current = equation.specLimits ?: SpecLimitsDto(usl = 0.0, lsl = 0.0)
                 onChange(equation.copy(specLimits = if (usl == null) null else current.copy(usl = usl)))
             }
         )
-        Box(modifier = Modifier.width(COLUMN_WIDTHS[4]), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.width(COLUMN_WIDTHS[6]), contentAlignment = Alignment.Center) {
             IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                Text("\u2715", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                Icon(Icons.Default.Close, contentDescription = "Delete", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

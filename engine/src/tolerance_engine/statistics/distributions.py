@@ -45,8 +45,14 @@ class ComponentStats:
 
 def component_stats(component: Component) -> ComponentStats:
     center = component.effective_nominal()
-    half_range = (component.upperTol + component.lowerTol) / 2.0
-    mean_shift = (component.upperTol - component.lowerTol) / 2.0
+
+    # Additive logic: both upperTol and lowerTol are deviations.
+    # We find the absolute low/high limits relative to nominal.
+    high_limit = max(component.upperTol, component.lowerTol)
+    low_limit = min(component.upperTol, component.lowerTol)
+
+    half_range = (high_limit - low_limit) / 2.0
+    mean_shift = (high_limit + low_limit) / 2.0
 
     if component.distribution in _NORMAL_SIGMA_DIVISOR:
         sigma = half_range / _NORMAL_SIGMA_DIVISOR[component.distribution]
@@ -64,8 +70,8 @@ def sample_component(component: Component, n: int, rng: np.random.Generator) -> 
     """Draws n samples from the component's *actual* bounded distribution
     (not the symmetric-sigma approximation used by RSS)."""
     center = component.effective_nominal()
-    low = center - component.lowerTol
-    high = center + component.upperTol
+    low = center + min(component.lowerTol, component.upperTol)
+    high = center + max(component.lowerTol, component.upperTol)
 
     if component.distribution == DistributionType.UNIFORM:
         return rng.uniform(low, high, size=n)

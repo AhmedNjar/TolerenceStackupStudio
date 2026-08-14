@@ -228,7 +228,7 @@ private fun buildElements(components: List<ComponentDto>, scale: Float, origin: 
                     componentId = c.id,
                     start = cursor,
                     end = next,
-                    label = "${c.label}: ${formatMm(c.nominal)} +${formatMm(c.upperTol)}/-${formatMm(c.lowerTol)}",
+                    label = "${c.label}: ${formatMm(c.nominal)} ${formatSigned(c.upperTol)}/${formatSigned(c.lowerTol)}",
                     labelPosition = labelPos,
                 )
             )
@@ -240,6 +240,7 @@ private fun buildElements(components: List<ComponentDto>, scale: Float, origin: 
 }
 
 private fun formatMm(v: Double): String = "%.3f".format(v)
+private fun formatSigned(v: Double): String = if (v >= 0) "+%.3f".format(v) else "%.3f".format(v)
 private fun formatDeg(v: Double): String = "%.2f\u00B0".format(v)
 
 private fun distanceToSegment(p: Offset, a: Offset, b: Offset): Float {

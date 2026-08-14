@@ -45,7 +45,7 @@ fun main() = application {
             val transport = processManager.start()
             val client = EngineClient(transport)
             engineClient = client
-            viewModel = StackupViewModel(client)
+            viewModel = StackupViewModel(client, scope)
         } catch (t: Throwable) {
             startupError = t.message ?: t.toString()
         }

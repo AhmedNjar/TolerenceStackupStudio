@@ -1,4 +1,7 @@
-- `[ ]` Enhance `ClosingEquation` model in Python and Kotlin
-- `[ ]` Update `ClosingEquationDataGrid` to include Name and Nominal columns
-- `[ ]` Update `StackupViewModel` to support new fields and nominal retrieval
-- `[ ]` Verify build and UI layout
+- `[x]` Switch to Additive Tolerance Limits
+    - `[x]` Update `worst_case.py` in engine
+    - `[x]` Update `distributions.py` in engine
+    - `[x]` Update `ComponentDataGrid.kt` headers
+    - `[x]` Update `VectorChainCanvas.kt` label formatting
+    - `[x]` Update `StackupViewModel.kt` starter data
+    - `[x]` Verify build and math with additive logic
