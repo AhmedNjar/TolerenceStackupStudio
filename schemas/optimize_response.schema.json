@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "optimize_response.schema.json",
+  "title": "OptimizeTolerancesResponse",
+  "type": "object",
+  "properties": {
+    "success": { "type": "boolean", "description": "Whether SLSQP converged to a feasible solution" },
+    "message": { "type": "string" },
+    "iterations": { "type": "integer" },
+    "optimizedTolerances": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "componentId": { "type": "string" },
+          "upperTol": { "type": "number" },
+          "lowerTol": { "type": "number" }
+        }
+      }
+    },
+    "totalCost": { "type": "number", "description": "Σ k_i / T_i^p_i at the optimum" },
+    "predictedYieldPct": {
+      "type": "number",
+      "description": "Yield predicted by the fast RSS/normal-approximation model used inside the optimizer's constraint — not the same computation as the Monte Carlo verification below."
+    },
+    "monteCarloVerification": {
+      "type": "object",
+      "description": "A real Monte Carlo run (statistics/monte_carlo.py) using the optimized tolerances, to check the fast analytic model against simulation. A large gap from predictedYieldPct usually means the stack-up is meaningfully non-normal (see skewness/kurtosis).",
+      "properties": {
+        "yieldPct": { "type": "number" },
+        "cp": { "type": ["number", "null"] },
+        "cpk": { "type": ["number", "null"] },
+        "skewness": { "type": "number" },
+        "kurtosis": { "type": "number" },
+        "runs": { "type": "integer" }
+      }
+    }
+  }
+}

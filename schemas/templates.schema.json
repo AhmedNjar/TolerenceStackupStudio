@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "templates.schema.json",
+  "title": "Templates",
+  "definitions": {
+    "TemplateRole": {
+      "type": "object",
+      "properties": {
+        "roleId": { "type": "string" },
+        "labelHint": { "type": "string", "description": "Suggested component label, e.g. 'B'" },
+        "kind": { "type": "string", "enum": ["LINEAR", "ANGULAR"] },
+        "description": { "type": "string" }
+      }
+    },
+    "Template": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "roles": { "type": "array", "items": { "$ref": "#/definitions/TemplateRole" } }
+      }
+    }
+  },
+  "LIST_TEMPLATES_response": {
+    "type": "object",
+    "properties": {
+      "templates": { "type": "array", "items": { "$ref": "#/definitions/Template" } }
+    }
+  },
+  "INSTANTIATE_TEMPLATE_request": {
+    "type": "object",
+    "required": ["templateId", "roleBindings"],
+    "properties": {
+      "templateId": { "type": "string" },
+      "roleBindings": {
+        "type": "object",
+        "additionalProperties": { "type": "string" },
+        "description": "roleId -> the actual component label the user assigned to that role"
+      }
+    }
+  },
+  "INSTANTIATE_TEMPLATE_response": {
+    "type": "object",
+    "properties": {
+      "templateId": { "type": "string" },
+      "expression": { "type": "string", "description": "Finished expression, ready to use as a closingEquations[].expression" }
+    }
+  }
+}

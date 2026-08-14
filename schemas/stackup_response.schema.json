@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "stackup_response.schema.json",
+  "title": "AnalyzeStackupResponse",
+  "type": "object",
+  "required": ["chainId", "results"],
+  "properties": {
+    "chainId": { "type": "string" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["closingId"],
+        "properties": {
+          "closingId": { "type": "string" },
+          "error": {
+            "type": ["string", "null"],
+            "description": "Present when this closing equation failed to parse/evaluate (e.g. references an unknown component label); the other fields are null in that case. A per-closing failure does not fail the whole request — other closing dimensions in the same request still compute normally."
+          },
+          "worstCase": {
+            "type": ["object", "null"],
+            "properties": {
+              "nominal": { "type": "number" },
+              "zMin": { "type": "number" },
+              "zMax": { "type": "number" }
+            }
+          },
+          "rss": {
+            "type": ["object", "null"],
+            "properties": {
+              "nominal": { "type": "number" },
+              "sigma": { "type": "number" },
+              "zMinPredicted": { "type": "number" },
+              "zMaxPredicted": { "type": "number" },
+              "shiftFactorApplied": { "type": ["number", "null"] }
+            }
+          },
+          "monteCarlo": {
+            "type": ["object", "null"],
+            "properties": {
+              "runs": { "type": "integer" },
+              "mean": { "type": "number" },
+              "stdDev": { "type": "number" },
+              "skewness": { "type": "number" },
+              "kurtosis": { "type": "number" },
+              "cp": { "type": ["number", "null"] },
+              "cpk": { "type": ["number", "null"] },
+              "yieldPct": { "type": "number" },
+              "dppm": { "type": "number" },
+              "dppmEstimationMethod": {
+                "type": ["string", "null"],
+                "enum": ["EMPIRICAL", "NORMAL_FIT_TAIL", null],
+                "description": "EMPIRICAL = counted directly from the run; NORMAL_FIT_TAIL = zero defects were observed at this sample size, so a normal distribution fit to the sample mean/stdDev was used for the tail estimate instead (approximate if skewness/kurtosis show strong non-normality)."
+              },
+              "histogram": {
+                "type": "object",
+                "properties": {
+                  "binEdges": { "type": "array", "items": { "type": "number" } },
+                  "counts": { "type": "array", "items": { "type": "integer" } }
+                }
+              }
+            }
+          },
+          "contributions": {
+            "type": "array",
+            "description": "Pareto ranking of variance contribution per component, sorted descending",
+            "items": {
+              "type": "object",
+              "properties": {
+                "componentId": { "type": "string" },
+                "contributionPct": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "report_request.schema.json",
+  "title": "GenerateReportRequest",
+  "description": "Shared request shape for both GENERATE_PDF_REPORT and GENERATE_EXCEL_REPORT. The engine re-runs the full analysis pipeline from these inputs rather than accepting a previously-computed AnalyzeStackupResponse, so the report always reflects the current component/equation state.",
+  "type": "object",
+  "required": ["chainId", "components", "closingEquations", "options", "outputPath"],
+  "properties": {
+    "chainId": { "type": "string" },
+    "components": { "type": "array", "items": { "$ref": "component.schema.json" } },
+    "closingEquations": {
+      "type": "array",
+      "items": { "$ref": "stackup_request.schema.json#/properties/closingEquations/items" }
+    },
+    "options": { "$ref": "stackup_request.schema.json#/properties/options" },
+    "outputPath": {
+      "type": "string",
+      "description": "Absolute filesystem path the engine writes the file to directly (PDF or XLSX depending on which envelope type was used). The file is NOT returned as base64 in the response — both processes run on the same machine, so writing straight to disk avoids inflating the JSON payload with a binary blob."
+    }
+  }
+}

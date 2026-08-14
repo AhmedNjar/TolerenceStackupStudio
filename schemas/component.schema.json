@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "component.schema.json",
+  "title": "Component",
+  "type": "object",
+  "required": ["id", "label", "kind", "nominal", "upperTol", "lowerTol", "distribution"],
+  "properties": {
+    "id": { "type": "string" },
+    "label": { "type": "string", "description": "e.g. 'A', 'B1'" },
+    "name": { "type": "string" },
+    "kind": { "type": "string", "enum": ["LINEAR", "ANGULAR"] },
+    "nominal": {
+      "type": "number",
+      "description": "Single source of truth for this component's value. Units follow `kind`: length units for LINEAR, degrees for ANGULAR. Trig templates convert degrees to radians inside the expression string itself (e.g. cos(pi*A/180))."
+    },
+    "upperTol": { "type": "number", "description": "+ tolerance, in the component's units" },
+    "lowerTol": { "type": "number", "description": "- tolerance, stored as a positive magnitude" },
+    "distribution": {
+      "type": "string",
+      "enum": ["NORMAL_3S", "NORMAL_6S", "UNIFORM", "TRIANGULAR"]
+    },
+    "standardFit": {
+      "type": ["object", "null"],
+      "description": "Optional ISO 286 / ANSI B4.1 / ISO 2768 lookup source; when present, upperTol/lowerTol were auto-populated from this and remain user-overridable.",
+      "properties": {
+        "standard": { "type": "string", "enum": ["ISO286", "ANSI_B4_1", "ISO2768", "ISO281"] },
+        "designation": { "type": "string", "description": "e.g. 'H7', 'f6'" }
+      }
+    },
+    "thermal": {
+      "type": ["object", "null"],
+      "properties": {
+        "alpha": { "type": "number", "description": "coefficient of thermal expansion, 1/°C" },
+        "deltaT": { "type": "number", "description": "°C, applied as L_eff = L0 * (1 + alpha * deltaT)" }
+      }
+    }
+  }
+}

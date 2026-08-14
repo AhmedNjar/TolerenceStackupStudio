@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "report_response.schema.json",
+  "title": "GenerateReportResponse",
+  "type": "object",
+  "required": ["outputPath", "fileSizeBytes"],
+  "properties": {
+    "outputPath": { "type": "string" },
+    "fileSizeBytes": { "type": "integer" }
+  }
+}

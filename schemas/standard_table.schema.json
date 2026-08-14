@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "standard_table.schema.json",
+  "title": "GetStandardTable",
+  "type": "object",
+  "GET_STANDARD_TABLE_request": {
+    "oneOf": [
+      {
+        "type": "object",
+        "required": ["standard", "basicSize", "designation"],
+        "properties": {
+          "standard": { "const": "ISO286" },
+          "basicSize": { "type": "number", "description": "mm, must be in (0, 500]" },
+          "designation": { "type": "string", "description": "e.g. 'H7', 'h6', 'js6'. Only H, h, JS/js are supported — see response.exact / the ISO286 error for why other letters are rejected rather than guessed." }
+        }
+      },
+      {
+        "type": "object",
+        "required": ["standard", "nominalSize", "toleranceClass"],
+        "properties": {
+          "standard": { "const": "ISO2768" },
+          "nominalSize": { "type": "number", "description": "mm, must be in (0.5, 4000]" },
+          "toleranceClass": { "type": "string", "enum": ["f", "m", "c", "v"] }
+        }
+      },
+      {
+        "type": "object",
+        "required": ["standard", "basicSize", "fitClass"],
+        "properties": {
+          "standard": { "const": "ANSI_B4_1" },
+          "basicSize": { "type": "number", "description": "inches" },
+          "fitClass": { "type": "string", "description": "e.g. 'RC3' — NOTE: not implemented, always returns an error" }
+        }
+      }
+    ]
+  },
+  "GET_STANDARD_TABLE_response": {
+    "type": "object",
+    "required": ["standard", "upperTol", "lowerTol", "exact"],
+    "properties": {
+      "standard": { "type": "string", "enum": ["ISO286", "ISO2768", "ANSI_B4_1"] },
+      "upperTol": { "type": "number", "description": "mm" },
+      "lowerTol": { "type": "number", "description": "mm, positive magnitude" },
+      "exact": {
+        "type": "boolean",
+        "description": "Always true for every response this API actually returns — non-exact/unsupported lookups (e.g. ISO286 letters other than H/h/JS) fail with an ERROR envelope instead of returning a guessed value. This field exists so a future data source with genuine approximations (e.g. an added ANSI_B4_1 table) has somewhere to signal that without a contract change."
+      }
+    }
+  }
+}

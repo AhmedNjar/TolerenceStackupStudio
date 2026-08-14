@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "optimize_request.schema.json",
+  "title": "OptimizeTolerancesRequest",
+  "type": "object",
+  "required": ["chainId", "components", "closingEquation", "targetYieldPct", "optimizable"],
+  "properties": {
+    "chainId": { "type": "string" },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "component.schema.json" },
+      "description": "Full component set. Components not referenced in `optimizable` are held fixed at their given tolerances."
+    },
+    "closingEquation": {
+      "allOf": [{ "$ref": "stackup_request.schema.json#/properties/closingEquations/items" }],
+      "description": "specLimits (usl/lsl) is REQUIRED here, unlike in a plain ANALYZE_STACKUP call — it defines the yield constraint."
+    },
+    "targetYieldPct": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 100 },
+    "optimizable": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["componentId", "costCoefficientK", "costExponentP", "minTol", "maxTol"],
+        "properties": {
+          "componentId": { "type": "string" },
+          "costCoefficientK": { "type": "number", "exclusiveMinimum": 0, "description": "k in cost(T) = k / T^p" },
+          "costExponentP": { "type": "number", "exclusiveMinimum": 0, "description": "p in cost(T) = k / T^p" },
+          "minTol": { "type": "number", "exclusiveMinimum": 0 },
+          "maxTol": { "type": "number", "exclusiveMinimum": 0 }
+        }
+      },
+      "description": "Components varied by the optimizer. Each is allocated a SYMMETRIC tolerance (upperTol = lowerTol) in the result — asymmetric allocation is not explored by this optimizer."
+    },
+    "monteCarloVerificationRuns": { "type": "integer", "minimum": 1000, "maximum": 100000, "default": 20000 },
+    "randomSeed": { "type": ["integer", "null"] }
+  }
+}

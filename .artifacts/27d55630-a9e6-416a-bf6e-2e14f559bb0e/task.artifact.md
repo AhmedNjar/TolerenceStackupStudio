@@ -1,0 +1,7 @@
+- `[x]` Create directory structure for `com.openamr.tolerencestackupstudio` in `desktopApp`
+- `[x]` Refactor package name and imports in all 18 Kotlin files in `desktopApp`
+- `[x]` Move refactored files to the new directory structure
+- `[x]` Remove old `com.architech` directory structure
+- `[x]` Verify build with `./gradlew :desktopApp:assemble`
+- `[x]` Fix engine startup path resolution in `EngineProcessManager.kt`
+- `[ ]` Verify engine startup with `./gradlew :desktopApp:run`

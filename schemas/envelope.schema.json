@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "envelope.schema.json",
+  "title": "Envelope",
+  "description": "Outer message wrapper for every request/response/progress frame sent over the engine socket.",
+  "type": "object",
+  "required": ["requestId", "type", "payload"],
+  "properties": {
+    "requestId": { "type": "string", "format": "uuid" },
+    "type": {
+      "type": "string",
+      "enum": [
+        "PING",
+        "PONG",
+        "ANALYZE_STACKUP",
+        "ANALYZE_STACKUP_RESULT",
+        "OPTIMIZE_TOLERANCES",
+        "OPTIMIZE_TOLERANCES_RESULT",
+        "GET_STANDARD_TABLE",
+        "GET_STANDARD_TABLE_RESULT",
+        "PROGRESS",
+        "ERROR"
+      ]
+    },
+    "success": { "type": ["boolean", "null"], "default": null },
+    "error": {
+      "type": ["object", "null"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    },
+    "payload": { "type": "object" }
+  }
+}

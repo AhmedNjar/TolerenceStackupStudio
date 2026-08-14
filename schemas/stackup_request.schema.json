@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "stackup_request.schema.json",
+  "title": "AnalyzeStackupRequest",
+  "type": "object",
+  "required": ["chainId", "components", "closingEquations", "options"],
+  "properties": {
+    "chainId": { "type": "string" },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "component.schema.json" }
+    },
+    "closingEquations": {
+      "type": "array",
+      "description": "One entry per closing dimension (Z1, Z2, Z3, ...). All entries share `components`, which is what makes multi-gap solves possible in a single call.",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "expression"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string", "description": "e.g. 'Z1'" },
+          "expression": {
+            "type": "string",
+            "description": "SymPy-parseable expression referencing component labels, e.g. 'B - D + (C - E)*cos(A) - G*sin(A)'"
+          },
+          "specLimits": {
+            "type": ["object", "null"],
+            "properties": {
+              "usl": { "type": "number" },
+              "lsl": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "options": {
+      "type": "object",
+      "required": ["methods"],
+      "properties": {
+        "methods": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["WORST_CASE", "RSS", "MODIFIED_RSS", "MONTE_CARLO"] }
+        },
+        "monteCarloRuns": { "type": "integer", "minimum": 1000, "maximum": 100000, "default": 10000 },
+        "modifiedRssShiftFactor": {
+          "type": ["number", "null"],
+          "description": "Bender/Spotts dynamic shift factor Ca; null = use method default"
+        },
+        "randomSeed": { "type": ["integer", "null"] }
+      }
+    }
+  }
+}
