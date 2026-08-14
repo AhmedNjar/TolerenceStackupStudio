@@ -5,14 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Button
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,18 +52,20 @@ fun StandardLookupDialog(
         text = {
             Column {
                 Row {
-                    Text("Standard: ")
+                    Text("Standard: ", color = MaterialTheme.colorScheme.onSurface)
                     Text(
                         text = standard.name,
                         modifier = Modifier.padding(start = 4.dp),
-                        style = MaterialTheme.typography.body1,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary
                     )
                     TextButton(onClick = { standardMenuExpanded = true }) { Text("change") }
                     DropdownMenu(expanded = standardMenuExpanded, onDismissRequest = { standardMenuExpanded = false }) {
                         StandardChoice.entries.forEach { choice ->
-                            DropdownMenuItem(onClick = { standard = choice; standardMenuExpanded = false; errorMessage = null }) {
-                                Text(choice.name)
-                            }
+                            DropdownMenuItem(
+                                text = { Text(choice.name) },
+                                onClick = { standard = choice; standardMenuExpanded = false; errorMessage = null }
+                            )
                         }
                     }
                 }
@@ -93,7 +88,8 @@ fun StandardLookupDialog(
                             "Only H, h, and JS/js are supported — other letters (f, g, k, n, p, s, ...) " +
                                 "require fundamental-deviation data this app doesn't ship (see docs). They'll " +
                                 "return an error here rather than a guessed number.",
-                            style = MaterialTheme.typography.caption,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     StandardChoice.ISO2768 -> {
@@ -103,12 +99,15 @@ fun StandardLookupDialog(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Row {
-                            Text("Class: ")
-                            Text(toleranceClass, modifier = Modifier.padding(start = 4.dp))
+                            Text("Class: ", color = MaterialTheme.colorScheme.onSurface)
+                            Text(toleranceClass, modifier = Modifier.padding(start = 4.dp), color = MaterialTheme.colorScheme.primary)
                             TextButton(onClick = { classMenuExpanded = true }) { Text("change") }
                             DropdownMenu(expanded = classMenuExpanded, onDismissRequest = { classMenuExpanded = false }) {
                                 listOf("f", "m", "c", "v").forEach { c ->
-                                    DropdownMenuItem(onClick = { toleranceClass = c; classMenuExpanded = false }) { Text(c) }
+                                    DropdownMenuItem(
+                                        text = { Text(c) },
+                                        onClick = { toleranceClass = c; classMenuExpanded = false }
+                                    )
                                 }
                             }
                         }
@@ -118,14 +117,15 @@ fun StandardLookupDialog(
                             "ANSI B4.1 is not implemented on the engine side — this standard's fit-class limit " +
                                 "tables weren't reproduced with enough confidence to ship. Selecting Apply here " +
                                 "will return an error.",
-                            style = MaterialTheme.typography.caption,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
                 errorMessage?.let {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(it, color = MaterialTheme.colors.error, style = MaterialTheme.typography.caption)
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
             }
         },

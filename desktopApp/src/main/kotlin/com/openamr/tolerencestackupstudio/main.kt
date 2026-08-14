@@ -1,25 +1,13 @@
 package com.openamr.tolerencestackupstudio
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.Button
-import androidx.compose.material.Checkbox
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.animation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -31,29 +19,26 @@ import com.openamr.tolerencestackupstudio.engine.protocol.dto.AnalysisMethod
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.AnalysisOptionsDto
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.GenerateReportRequestDto
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.GenerateReportResponseDto
+import com.openamr.tolerencestackupstudio.ui.AppScreen
 import com.openamr.tolerencestackupstudio.ui.StackupViewModel
 import com.openamr.tolerencestackupstudio.ui.StandardLookupDialog
 import com.openamr.tolerencestackupstudio.ui.canvas.VectorChainCanvas
 import com.openamr.tolerencestackupstudio.ui.datagrid.ClosingEquationDataGrid
 import com.openamr.tolerencestackupstudio.ui.datagrid.ComponentDataGrid
 import com.openamr.tolerencestackupstudio.ui.results.ResultsPanel
+import com.openamr.tolerencestackupstudio.ui.theme.AppTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.awt.FileDialog
 import java.awt.Frame
 
-/**
- * Phase 3: the real UI — editable component grid, interactive 2D vector-chain
- * canvas (tap a segment or the matching grid row to link them), a standard
- * fit lookup dialog, method selection, and a results panel. Replaces the
- * Phase 1/2 ping-and-one-analysis smoke test this file used to be.
- */
 fun main() = application {
     var engineClient by remember { mutableStateOf<EngineClient?>(null) }
     var viewModel by remember { mutableStateOf<StackupViewModel?>(null) }
     var startupError by remember { mutableStateOf<String?>(null) }
     val processManager = remember { EngineProcessManager() }
     val scope = rememberCoroutineScope()
+    var darkTheme by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         try {
@@ -70,65 +55,120 @@ fun main() = application {
         val vm = viewModel
         val client = engineClient
 
-        MaterialTheme {
-            when {
-                startupError != null -> Text("Engine failed to start: $startupError", modifier = Modifier.padding(16.dp))
-                vm == null || client == null -> Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Starting engine...")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    CircularProgressIndicator()
+        AppTheme(darkTheme = darkTheme) {
+            Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                when {
+                    startupError != null -> StartupError(startupError!!)
+                    vm == null || client == null -> StartingEngine()
+                    else -> MainScaffold(vm, client, scope, darkTheme, onThemeToggle = { darkTheme = !darkTheme })
                 }
-                else -> MainContent(vm, client, scope)
             }
         }
     }
 }
 
 @Composable
-private fun MainContent(
+private fun StartupError(error: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Engine failed to start: $error", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
+    }
+}
+
+@Composable
+private fun StartingEngine() {
+    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text("Starting engine...", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(16.dp))
+        CircularProgressIndicator()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainScaffold(
     vm: StackupViewModel,
     client: EngineClient,
     scope: CoroutineScope,
+    darkTheme: Boolean,
+    onThemeToggle: () -> Unit
 ) {
-    var standardLookupComponentId by remember { mutableStateOf<String?>(null) }
-
-    Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-        AnalysisControls(vm, scope)
-
-        Spacer(modifier = Modifier.height(4.dp))
-        ExportControls(vm, client, scope)
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Components", style = MaterialTheme.typography.h6)
-                ComponentDataGrid(
-                    viewModel = vm,
-                    onOpenStandardLookup = { componentId -> standardLookupComponentId = componentId },
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Tolerance Stack-up Studio") },
+                actions = {
+                    IconButton(onClick = onThemeToggle) {
+                        Icon(if (darkTheme) Icons.Default.LightMode else Icons.Default.DarkMode, contentDescription = "Toggle Theme")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Closing Equations (Resultants Z)", style = MaterialTheme.typography.h6)
-                ClosingEquationDataGrid(viewModel = vm)
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Vector Chain", style = MaterialTheme.typography.h6)
-                VectorChainCanvas(
-                    components = vm.components.toList(),
-                    selectedComponentId = vm.selectedComponentId,
-                    onSelect = { vm.selectComponent(it) },
-                )
+            )
+        }
+    ) { padding ->
+        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+            AnimatedContent(
+                targetState = vm.currentScreen,
+                transitionSpec = {
+                    if (targetState == AppScreen.RESULTS) {
+                        slideInHorizontally { it } + fadeIn() togetherWith slideOutHorizontally { -it } + fadeOut()
+                    } else {
+                        slideInHorizontally { -it } + fadeIn() togetherWith slideOutHorizontally { it } + fadeOut()
+                    }.using(SizeTransform(clip = false))
+                }
+            ) { screen ->
+                when (screen) {
+                    AppScreen.EDITOR -> EditorScreen(vm, client, scope)
+                    AppScreen.RESULTS -> ResultsScreen(vm, client, scope)
+                }
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Results", style = MaterialTheme.typography.h6)
-        ResultsPanel(
-            result = vm.lastResult,
-            getComponentLabel = { id -> vm.components.find { it.id == id }?.label ?: id },
-            getClosingLabel = { id -> vm.closingEquations.find { it.id == id }?.label ?: id },
-        )
+@Composable
+private fun EditorScreen(vm: StackupViewModel, client: EngineClient, scope: CoroutineScope) {
+    var standardLookupComponentId by remember { mutableStateOf<String?>(null) }
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        val isWide = maxWidth >= 1000.dp
+        
+        Column(modifier = Modifier.fillMaxSize()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    AnalysisControls(vm, scope)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ExportControls(vm, client, scope)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (isWide) {
+                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        EditorSection(vm) { standardLookupComponentId = it }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        CanvasSection(vm)
+                    }
+                }
+            } else {
+                Column(modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
+                    EditorSection(vm) { standardLookupComponentId = it }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Box(modifier = Modifier.height(400.dp).fillMaxWidth()) {
+                        CanvasSection(vm)
+                    }
+                }
+            }
+        }
     }
 
     val lookupId = standardLookupComponentId
@@ -149,38 +189,109 @@ private fun MainContent(
 }
 
 @Composable
-private fun AnalysisControls(vm: StackupViewModel, scope: CoroutineScope) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        AnalysisMethod.entries.forEach { method ->
-            val checked = method in vm.selectedMethods
-            Checkbox(
-                checked = checked,
-                onCheckedChange = { isChecked ->
-                    vm.selectedMethods = if (isChecked) vm.selectedMethods + method else vm.selectedMethods - method
-                },
+private fun ResultsScreen(vm: StackupViewModel, client: EngineClient, scope: CoroutineScope) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { vm.navigateBack() }) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+            }
+            Text("Analysis Results", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.weight(1f))
+            ExportControls(vm, client, scope)
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Card(modifier = Modifier.fillMaxSize(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+            ResultsPanel(
+                result = vm.lastResult,
+                getComponentLabel = { id -> vm.components.find { it.id == id }?.label ?: id },
+                getClosingLabel = { id -> vm.closingEquations.find { it.id == id }?.label ?: id },
             )
-            Text(method.name, modifier = Modifier.padding(end = 12.dp))
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Button(enabled = !vm.isBusy, onClick = { scope.launch { vm.runAnalysis() } }) {
-            Text(if (vm.isBusy) "Running..." else "Run Analysis")
-        }
-
-        vm.lastError?.let {
-            Text(it, color = MaterialTheme.colors.error, modifier = Modifier.padding(start = 12.dp))
         }
     }
 }
 
-/**
- * The engine re-runs the full analysis itself for a report (see
- * GenerateReportRequestDto's docstring) — this doesn't reuse vm.lastResult,
- * it sends the current components/closingEquations/methods and lets the
- * engine compute fresh, so the export always matches what's currently in
- * the grid even if "Run Analysis" hasn't been clicked since the last edit.
- */
+@Composable
+private fun EditorSection(vm: StackupViewModel, onOpenStandardLookup: (String) -> Unit) {
+    Column {
+        Text("Components", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(modifier = Modifier.height(300.dp)) {
+            ComponentDataGrid(
+                viewModel = vm,
+                onOpenStandardLookup = onOpenStandardLookup,
+            )
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Closing Equations", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(modifier = Modifier.height(200.dp)) {
+            ClosingEquationDataGrid(viewModel = vm)
+        }
+    }
+}
+
+@Composable
+private fun CanvasSection(vm: StackupViewModel) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text("Visual Vector Chain", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        Card(modifier = Modifier.fillMaxSize(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            VectorChainCanvas(
+                components = vm.components.toList(),
+                selectedComponentId = vm.selectedComponentId,
+                onSelect = { vm.selectComponent(it) },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AnalysisControls(vm: StackupViewModel, scope: CoroutineScope) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        AnalysisMethod.entries.forEach { method ->
+            val checked = method in vm.selectedMethods
+            FilterChip(
+                selected = checked,
+                onClick = {
+                    vm.selectedMethods = if (!checked) vm.selectedMethods + method else vm.selectedMethods - method
+                },
+                label = { Text(method.name) },
+                leadingIcon = if (checked) {
+                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                } else null
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Button(
+            enabled = !vm.isBusy,
+            onClick = { scope.launch { vm.runAnalysis() } },
+            shape = MaterialTheme.shapes.medium
+        ) {
+            if (vm.isBusy) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Analyzing...")
+            } else {
+                Icon(Icons.Default.PlayArrow, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Run Analysis")
+            }
+        }
+
+        vm.lastError?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 12.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ExportControls(vm: StackupViewModel, client: EngineClient, scope: CoroutineScope) {
     var isExporting by remember { mutableStateOf(false) }
@@ -188,9 +299,6 @@ private fun ExportControls(vm: StackupViewModel, client: EngineClient, scope: Co
     var exportError by remember { mutableStateOf<String?>(null) }
 
     fun export(extension: String, call: suspend (GenerateReportRequestDto) -> GenerateReportResponseDto) {
-        // Shown synchronously on the calling (UI) thread — a modal save
-        // dialog blocking briefly while the user picks a location is normal,
-        // expected desktop UX, not a bug to work around.
         val path = chooseSavePath(suggestedName = "${vm.closingEquations.firstOrNull()?.label ?: "report"}.$extension", extension = extension)
             ?: return
 
@@ -215,36 +323,35 @@ private fun ExportControls(vm: StackupViewModel, client: EngineClient, scope: Co
         }
     }
 
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Button(enabled = !isExporting, onClick = { export("pdf", client::generatePdfReport) }) {
-            Text("Export PDF")
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedButton(enabled = !isExporting, onClick = { export("pdf", client::generatePdfReport) }) {
+            Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("PDF")
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Button(enabled = !isExporting, onClick = { export("xlsx", client::generateExcelReport) }) {
-            Text("Export Excel")
+        OutlinedButton(enabled = !isExporting, onClick = { export("xlsx", client::generateExcelReport) }) {
+            Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Excel")
         }
         if (isExporting) {
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Exporting...", style = MaterialTheme.typography.caption)
+            Text("Exporting...", style = MaterialTheme.typography.labelSmall)
         }
         lastSavedPath?.let {
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Saved: $it", style = MaterialTheme.typography.caption)
+            Text("Saved!", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         }
         exportError?.let {
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(it, color = MaterialTheme.colors.error, style = MaterialTheme.typography.caption)
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
 
-/** Native OS save dialog via plain AWT — no extra dependency needed, and
- * FileDialog delegates to the native picker rather than a Swing look-and-feel
- * one. Returns null if the user cancels. */
 private fun chooseSavePath(suggestedName: String, extension: String): String? {
     val dialog = FileDialog(null as Frame?, "Save $extension report", FileDialog.SAVE)
     dialog.file = suggestedName
-    dialog.isVisible = true // blocks the calling thread until the dialog closes
+    dialog.isVisible = true
     val directory = dialog.directory ?: return null
     val file = dialog.file ?: return null
     val fileName = if (file.endsWith(".$extension")) file else "$file.$extension"

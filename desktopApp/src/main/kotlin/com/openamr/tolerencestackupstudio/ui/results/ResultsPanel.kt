@@ -1,14 +1,16 @@
 package com.openamr.tolerencestackupstudio.ui.results
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.Divider
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.AnalyzeStackupResponseDto
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.ClosingDimensionResultDto
@@ -20,16 +22,23 @@ fun ResultsPanel(
     getClosingLabel: (String) -> String,
 ) {
     if (result == null) {
-        Text("Run an analysis to see results here.", modifier = Modifier.padding(8.dp), style = MaterialTheme.typography.caption)
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.outline)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("No analysis data yet", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         return
     }
 
-    LazyColumn(modifier = Modifier.padding(8.dp)) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
         items(result.results) { closing ->
-            Column {
-                ClosingResultCard(closing, getComponentLabel, getClosingLabel)
-                Divider(modifier = Modifier.padding(vertical = 6.dp))
-            }
+            ClosingResultCard(closing, getComponentLabel, getClosingLabel)
         }
     }
 }
@@ -40,49 +49,86 @@ private fun ClosingResultCard(
     getComponentLabel: (String) -> String,
     getClosingLabel: (String) -> String,
 ) {
-    Column {
-        Text(getClosingLabel(closing.closingId), style = MaterialTheme.typography.subtitle2)
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "Dimension: ${getClosingLabel(closing.closingId)}",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
-        if (closing.error != null) {
-            Text("Error: ${closing.error}", color = MaterialTheme.colors.error, style = MaterialTheme.typography.caption)
-        } else {
-            closing.worstCase?.let { wc ->
+            if (closing.error != null) {
                 Text(
-                    "Worst Case — nominal ${fmt(wc.nominal)}, range [${fmt(wc.zMin)}, ${fmt(wc.zMax)}]",
-                    style = MaterialTheme.typography.body2,
+                    text = "Analysis Error: ${closing.error}",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
                 )
-            }
-            closing.rss?.let { rss ->
-                val shiftNote = rss.shiftFactorApplied?.let { " (shift factor ${fmt(it)})" } ?: ""
-                Text(
-                    "RSS$shiftNote — sigma ${fmt(rss.sigma)}, predicted [${fmt(rss.zMinPredicted)}, ${fmt(rss.zMaxPredicted)}]",
-                    style = MaterialTheme.typography.body2,
-                )
-            }
-            closing.monteCarlo?.let { mc ->
-                Text(
-                    "Monte Carlo (${mc.runs} runs) — mean ${fmt(mc.mean)}, std ${fmt(mc.stdDev)}, " +
-                        "yield ${fmt(mc.yieldPct)}%, DPPM ${fmt(mc.dppm)}" +
-                        (mc.dppmEstimationMethod?.let { " ($it)" } ?: ""),
-                    style = MaterialTheme.typography.body2,
-                )
-                if (mc.cp != null && mc.cpk != null) {
-                    Text("Cp ${fmt(mc.cp)}, Cpk ${fmt(mc.cpk)}", style = MaterialTheme.typography.body2)
+            } else {
+                ResultMetricSection(closing)
+                
+                if (closing.contributions.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("Variance Contribution (Pareto)", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ParetoChart(closing.contributions, getComponentLabel, modifier = Modifier.padding(top = 8.dp))
                 }
-                Text("Skewness ${fmt(mc.skewness)}, Kurtosis ${fmt(mc.kurtosis)}", style = MaterialTheme.typography.body2)
-                HistogramChart(mc.histogram, modifier = Modifier.padding(top = 4.dp))
-            }
-            if (closing.contributions.isNotEmpty()) {
-                val topContributorId = closing.contributions.first().componentId
-                Text(
-                    "Top contributor: ${getComponentLabel(topContributorId)} " +
-                        "(${fmt(closing.contributions.first().contributionPct)}%)",
-                    style = MaterialTheme.typography.body2,
-                )
-                ParetoChart(closing.contributions, getComponentLabel, modifier = Modifier.padding(top = 4.dp))
             }
         }
     }
 }
 
-private fun fmt(v: Double): String = "%.4f".format(v)
+@Composable
+private fun ResultMetricSection(closing: ClosingDimensionResultDto) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Worst Case Section
+        closing.worstCase?.let { wc ->
+            MetricRow("Worst Case", "Nominal: ${formatValue(wc.nominal)}", "Range: [${formatValue(wc.zMin)}, ${formatValue(wc.zMax)}]")
+        }
+
+        // RSS Section
+        closing.rss?.let { rss ->
+            val title = if (rss.shiftFactorApplied != null) "RSS (Shift ${formatValue(rss.shiftFactorApplied)})" else "RSS"
+            MetricRow(title, "Sigma: ${formatValue(rss.sigma)}", "Predicted: [${formatValue(rss.zMinPredicted)}, ${formatValue(rss.zMaxPredicted)}]")
+        }
+
+        // Monte Carlo Section
+        closing.monteCarlo?.let { mc ->
+            Column {
+                MetricRow(
+                    "Monte Carlo (${mc.runs} runs)",
+                    "Mean: ${formatValue(mc.mean)}",
+                    "Yield: ${formatValue(mc.yieldPct)}%",
+                    primaryColor = true
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                HistogramChart(mc.histogram, modifier = Modifier.padding(top = 8.dp))
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("DPPM: ${formatValue(mc.dppm)}", style = MaterialTheme.typography.labelMedium)
+                    if (mc.cpk != null) {
+                        Text("Cpk: ${formatValue(mc.cpk)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricRow(title: String, val1: String, val2: String, primaryColor: Boolean = false) {
+    Column {
+        Text(title, style = MaterialTheme.typography.titleSmall, color = if (primaryColor) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Text(val1, style = MaterialTheme.typography.bodyMedium)
+            Text(val2, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+private fun formatValue(v: Double): String = "%.4f".format(v)

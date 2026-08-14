@@ -16,6 +16,8 @@ import com.openamr.tolerencestackupstudio.engine.protocol.dto.DistributionType
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.StandardFitDto
 import java.util.UUID
 
+enum class AppScreen { EDITOR, RESULTS }
+
 /**
  * Holds all editable state for one stack-up chain and talks to the engine.
  * Deliberately a plain state holder (mutableStateListOf/mutableStateOf),
@@ -23,6 +25,9 @@ import java.util.UUID
  * more chains/screens later, that's a reasonable point to reconsider.
  */
 class StackupViewModel(private val engineClient: EngineClient) {
+
+    var currentScreen by mutableStateOf(AppScreen.EDITOR)
+        private set
 
     val components = mutableStateListOf<ComponentDto>()
     val closingEquations = mutableStateListOf<ClosingEquationDto>()
@@ -114,6 +119,14 @@ class StackupViewModel(private val engineClient: EngineClient) {
         }
     }
 
+    fun navigateToResults() {
+        currentScreen = AppScreen.RESULTS
+    }
+
+    fun navigateBack() {
+        currentScreen = AppScreen.EDITOR
+    }
+
     suspend fun runAnalysis() {
         if (components.isEmpty() || closingEquations.isEmpty()) {
             lastError = "Add at least one component and one closing equation before running analysis."
@@ -132,7 +145,11 @@ class StackupViewModel(private val engineClient: EngineClient) {
             )
             lastResult = response
             val firstError = response.results.firstOrNull { it.error != null }?.error
-            if (firstError != null) lastError = firstError
+            if (firstError != null) {
+                lastError = firstError
+            } else {
+                navigateToResults()
+            }
         } catch (t: Throwable) {
             lastError = t.message ?: t.toString()
         } finally {

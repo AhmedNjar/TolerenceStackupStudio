@@ -195,6 +195,7 @@ private fun buildElements(components: List<ComponentDto>, scale: Float, origin: 
     val elements = mutableListOf<CanvasElement>()
     var cursor = origin
     var headingRad = 0.0
+    var linearIndex = 0
 
     for (c in components) {
         if (c.kind == ComponentKind.ANGULAR) {
@@ -215,10 +216,12 @@ private fun buildElements(components: List<ComponentDto>, scale: Float, origin: 
                 cursor.y - (length * sin(headingRad)).toFloat(),
             )
             val mid = Offset((cursor.x + next.x) / 2f, (cursor.y + next.y) / 2f)
-            // Offset the label perpendicular to the segment so it doesn't sit
-            // on top of the line itself.
+            
+            // Stagger labels: alternate between above and below the chain
+            // segments to prevent overlaps in dense 1D/2D loops.
+            val staggerMultiplier = if (linearIndex % 2 == 0) 1f else -1f
             val perp = Offset(-sin(headingRad).toFloat(), -cos(headingRad).toFloat())
-            val labelPos = Offset(mid.x + perp.x * 24f, mid.y + perp.y * 24f)
+            val labelPos = Offset(mid.x + perp.x * 24f * staggerMultiplier, mid.y + perp.y * 24f * staggerMultiplier)
 
             elements.add(
                 CanvasElement.Segment(
@@ -230,6 +233,7 @@ private fun buildElements(components: List<ComponentDto>, scale: Float, origin: 
                 )
             )
             cursor = next
+            linearIndex++
         }
     }
     return elements

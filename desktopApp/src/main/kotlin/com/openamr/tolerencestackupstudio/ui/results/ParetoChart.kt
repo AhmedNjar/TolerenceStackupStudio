@@ -3,8 +3,10 @@ package com.openamr.tolerencestackupstudio.ui.results
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -25,42 +27,49 @@ fun ParetoChart(
     modifier: Modifier = Modifier
 ) {
     val textMeasurer = rememberTextMeasurer()
+    val barColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+    val lineColor = MaterialTheme.colorScheme.primary
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+
     if (contributions.isEmpty()) return
 
-    // contributions already come sorted descending from the engine, but sort
-    // defensively here too since this view's correctness (a Pareto chart)
-    // depends on that order, not just on trusting the caller.
     val sorted = contributions.sortedByDescending { it.contributionPct }
     var running = 0.0
     val cumulative = sorted.map { running += it.contributionPct; running }
 
-    Canvas(modifier = modifier.fillMaxWidth().height(160.dp)) {
-        val chartHeight = size.height - 24f
+    Canvas(modifier = modifier.fillMaxWidth().height(180.dp)) {
+        val chartHeight = size.height - 32f
         val barWidth = size.width / sorted.size
         val maxPct = 100.0
+
+        // Draw baseline
+        drawLine(gridColor, Offset(0f, chartHeight), Offset(size.width, chartHeight), strokeWidth = 1f)
 
         sorted.forEachIndexed { i, c ->
             val label = getComponentLabel(c.componentId)
             val barHeight = (chartHeight * (c.contributionPct / maxPct)).toFloat()
-            drawRect(
-                color = Color(0xFF546E7A),
-                topLeft = Offset(i * barWidth, chartHeight - barHeight),
-                size = Size(barWidth * 0.7f, barHeight),
+            drawRoundRect(
+                color = barColor,
+                topLeft = Offset(i * barWidth + (barWidth * 0.1f), chartHeight - barHeight),
+                size = Size(barWidth * 0.8f, barHeight),
+                cornerRadius = CornerRadius(4f, 4f)
             )
-            val labelWidth = textMeasurer.measure(label).size.width
+            
+            val labelLayout = textMeasurer.measure(label, TextStyle(fontSize = 10.sp))
             drawText(
                 textMeasurer, label,
-                topLeft = Offset(i * barWidth + barWidth * 0.35f - labelWidth / 2f, chartHeight + 4f),
-                style = TextStyle(fontSize = 10.sp, color = Color.Gray),
+                topLeft = Offset(i * barWidth + barWidth * 0.5f - labelLayout.size.width / 2f, chartHeight + 6f),
+                style = TextStyle(fontSize = 10.sp, color = labelColor),
             )
         }
 
         val points = cumulative.mapIndexed { i, pct ->
-            Offset(i * barWidth + barWidth * 0.35f, chartHeight - (chartHeight * (pct / maxPct)).toFloat())
+            Offset(i * barWidth + barWidth * 0.5f, chartHeight - (chartHeight * (pct / maxPct)).toFloat())
         }
         for (i in 0 until points.size - 1) {
-            drawLine(Color(0xFFD32F2F), points[i], points[i + 1], strokeWidth = 3f, cap = StrokeCap.Round)
+            drawLine(lineColor, points[i], points[i + 1], strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
         }
-        points.forEach { p -> drawCircle(Color(0xFFD32F2F), radius = 4f, center = p) }
+        points.forEach { p -> drawCircle(lineColor, radius = 4.dp.toPx(), center = p) }
     }
 }

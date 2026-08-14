@@ -1,4 +1,4 @@
-- `[x]` Add closing equation management methods to `StackupViewModel.kt`
-- `[x]` Create `ClosingEquationDataGrid.kt` component
-- `[x]` Integrate `ClosingEquationDataGrid` into `main.kt` layout
-- `[x]` Verify build with `./gradlew :desktopApp:assemble`
+- `[ ]` Enhance `ClosingEquation` model in Python and Kotlin
+- `[ ]` Update `ClosingEquationDataGrid` to include Name and Nominal columns
+- `[ ]` Update `StackupViewModel` to support new fields and nominal retrieval
+- `[ ]` Verify build and UI layout

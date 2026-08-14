@@ -1,20 +1,42 @@
-# Implementation Plan - Fix Vector Chain Label Overlaps
+# Implementation Plan - UI/UX Overhaul & Navigation
 
-When multiple short components are placed in a sequence, their labels often overlap because they are all rendered at the same vertical offset. This is especially problematic for 1D/linear stack-ups where components are perfectly aligned.
+This plan outlines a complete redesign of the application's user interface to improve aesthetics, usability, and responsiveness, including a new multi-screen navigation flow.
 
-## Analysis
-- **Current Behavior**: Every linear component label is offset by a fixed distance (24px) in the perpendicular direction (usually "up" for horizontal chains).
-- **Issue**: If the component length is shorter than the label width, the labels for consecutive components will collide.
-- **Proposed Solution**: Stagger the labels by alternating their position above and below the chain segments. Component 1 will be above, Component 2 below, Component 3 above, and so on.
+## User Review Required
+
+> [!IMPORTANT]
+> The UI will switch from a single-screen layout to a two-screen layout: **Editor** and **Results**. Navigation to Results will happen automatically after a successful analysis.
+
+> [!TIP]
+> We will introduce a **Dark/Light mode** toggle and modernize the styling using Material 3 principles (large rounded corners, refined typography, and subtle animations).
 
 ## Proposed Changes
 
 ### [desktopApp](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp)
 
-#### [MODIFY] [VectorChainCanvas.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/canvas/VectorChainCanvas.kt)
-- Update `buildElements` to alternate the label offset direction for `LINEAR` components.
-- Use a counter to track the sequence of linear components and flip the perpendicular offset multiplier based on whether the count is even or odd.
-- Ensure that `AngleJoint` labels are also positioned to avoid conflict with staggered segment labels.
+#### [NEW] [Theme.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/theme/Theme.kt)
+- Define a modern color palette for both light and dark modes.
+- Configure `Typography` with a clean, professional font stack.
+- Set `Shapes` with modern rounded corners (12dp - 16dp).
+
+#### [MODIFY] [StackupViewModel.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/StackupViewModel.kt)
+- Add `currentScreen` state (enum: `EDITOR`, `RESULTS`).
+- Update `runAnalysis()` to automatically switch to `RESULTS` screen upon success.
+- Add a `backToEditor()` method.
+
+#### [MODIFY] [main.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/main.kt)
+- Implement `AnimatedContent` to transition between `EditorScreen` and `ResultsScreen`.
+- Add a top app bar with the application title and a **Dark Mode toggle**.
+- Extract `EditorScreen` and `ResultsScreen` into dedicated composables.
+
+#### [MODIFY] [ResultsPanel.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/results/ResultsPanel.kt)
+- Redesign as a full-screen experience.
+- Add a "Back to Editor" button.
+- Improve chart aesthetics (gradients, smoother lines).
+
+#### [REFINEMENT] Data Grids
+- Clean up the table headers and cell padding.
+- Use card-based layouts for sections to create visual depth.
 
 ## Verification Plan
 
@@ -22,6 +44,7 @@ When multiple short components are placed in a sequence, their labels often over
 - Build the project using `./gradlew :desktopApp:assemble`.
 
 ### Manual Verification
-- Add 4 components of the same short length (e.g., 10mm).
-- Verify in the UI that labels alternate between being above and below the line.
-- Verify that the labels no longer overlap.
+1. **Theme Test**: Toggle between Dark and Light mode; verify all text remains legible.
+2. **Navigation Test**: Click "Run Analysis" -> verify automatic transition to Results screen.
+3. **Transition Test**: Verify that the screen change is animated (e.g., slide or fade).
+4. **UX Test**: Verify that the new layout feels less "crowded" on various window sizes.

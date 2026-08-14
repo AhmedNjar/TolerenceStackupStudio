@@ -12,13 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.Button
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +32,7 @@ private val COLUMN_WIDTHS = listOf(50, 110, 90, 90, 80, 80, 110, 90, 40).map { i
 
 @Composable
 fun ComponentDataGrid(viewModel: StackupViewModel, onOpenStandardLookup: (componentId: String) -> Unit) {
-    Box(modifier = Modifier.border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.2f))) {
+    Box(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))) {
         Column {
             HeaderRow()
             LazyColumn {
@@ -53,7 +47,7 @@ fun ComponentDataGrid(viewModel: StackupViewModel, onOpenStandardLookup: (compon
                     )
                 }
                 item {
-                    Button(onClick = viewModel::addComponent, modifier = Modifier.padding(8.dp)) {
+                    Button(onClick = viewModel::addComponent, modifier = Modifier.padding(8.dp), shape = MaterialTheme.shapes.small) {
                         Text("+ Add Component")
                     }
                 }
@@ -65,9 +59,9 @@ fun ComponentDataGrid(viewModel: StackupViewModel, onOpenStandardLookup: (compon
 @Composable
 private fun HeaderRow() {
     val headers = listOf("Label", "Name", "Kind", "Nominal", "+Upper", "-Lower", "Distribution", "Std Fit", "")
-    Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colors.primary.copy(alpha = 0.1f)).padding(4.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)).padding(4.dp)) {
         headers.forEachIndexed { i, h ->
-            Text(h, modifier = Modifier.width(COLUMN_WIDTHS[i]).padding(horizontal = 4.dp), style = MaterialTheme.typography.caption)
+            Text(h, modifier = Modifier.width(COLUMN_WIDTHS[i]).padding(horizontal = 4.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -81,7 +75,7 @@ private fun ComponentRow(
     onDelete: () -> Unit,
     onOpenStandardLookup: () -> Unit,
 ) {
-    val rowBackground = if (selected) MaterialTheme.colors.secondary.copy(alpha = 0.25f) else Color.Transparent
+    val rowBackground = if (selected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f) else Color.Transparent
 
     Row(
         modifier = Modifier
@@ -139,12 +133,12 @@ private fun ComponentRow(
         )
         Box(modifier = Modifier.width(COLUMN_WIDTHS[7]), contentAlignment = Alignment.Center) {
             IconButton(onClick = onOpenStandardLookup, modifier = Modifier.size(28.dp)) {
-                Text("\u2699", style = MaterialTheme.typography.body1) // gear symbol; avoids depending on material-icons-extended
+                Text("\u2699", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface) // gear symbol; avoids depending on material-icons-extended
             }
         }
         Box(modifier = Modifier.width(COLUMN_WIDTHS[8]), contentAlignment = Alignment.Center) {
             IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                Text("\u2715", style = MaterialTheme.typography.body1) // multiplication-x symbol
+                Text("\u2715", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface) // multiplication-x symbol
             }
         }
     }
@@ -158,7 +152,7 @@ private fun LabeledTextField(value: String, width: Dp, onCommit: (String) -> Uni
         onValueChange = { text = it; onCommit(it) },
         modifier = Modifier.width(width).padding(horizontal = 2.dp),
         singleLine = true,
-        textStyle = MaterialTheme.typography.caption,
+        textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
     )
 }
 
@@ -189,7 +183,7 @@ private fun NumericField(
         modifier = Modifier.width(width).padding(horizontal = 2.dp),
         singleLine = true,
         isError = isInvalid,
-        textStyle = MaterialTheme.typography.caption,
+        textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
     )
 }
 
@@ -202,14 +196,16 @@ private fun <T : Enum<T>> EnumDropdown(value: T, options: List<T>, width: Dp, on
     Box(modifier = Modifier.width(width)) {
         Text(
             text = value.name,
-            style = MaterialTheme.typography.caption,
+            style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.clickable { expanded = true }.padding(4.dp),
+            color = MaterialTheme.colorScheme.onSurface
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
-                DropdownMenuItem(onClick = { onSelect(option); expanded = false }) {
-                    Text(option.name)
-                }
+                DropdownMenuItem(
+                    text = { Text(option.name) },
+                    onClick = { onSelect(option); expanded = false }
+                )
             }
         }
     }

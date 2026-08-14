@@ -12,11 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.Button
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,7 +30,7 @@ private val COLUMN_WIDTHS = listOf(60, 200, 90, 90, 40).map { it.dp }
 
 @Composable
 fun ClosingEquationDataGrid(viewModel: StackupViewModel) {
-    Box(modifier = Modifier.border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.2f))) {
+    Box(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))) {
         Column {
             HeaderRow()
             LazyColumn {
@@ -46,7 +42,7 @@ fun ClosingEquationDataGrid(viewModel: StackupViewModel) {
                     )
                 }
                 item {
-                    Button(onClick = viewModel::addClosingEquation, modifier = Modifier.padding(8.dp)) {
+                    Button(onClick = viewModel::addClosingEquation, modifier = Modifier.padding(8.dp), shape = MaterialTheme.shapes.small) {
                         Text("+ Add Equation (Z)")
                     }
                 }
@@ -58,9 +54,9 @@ fun ClosingEquationDataGrid(viewModel: StackupViewModel) {
 @Composable
 private fun HeaderRow() {
     val headers = listOf("Label", "Equation (Expression)", "LSL", "USL", "")
-    Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colors.primary.copy(alpha = 0.1f)).padding(4.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)).padding(4.dp)) {
         headers.forEachIndexed { i, h ->
-            Text(h, modifier = Modifier.width(COLUMN_WIDTHS[i]).padding(horizontal = 4.dp), style = MaterialTheme.typography.caption)
+            Text(h, modifier = Modifier.width(COLUMN_WIDTHS[i]).padding(horizontal = 4.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -103,7 +99,7 @@ private fun EquationRow(
         )
         Box(modifier = Modifier.width(COLUMN_WIDTHS[4]), contentAlignment = Alignment.Center) {
             IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                Text("\u2715", style = MaterialTheme.typography.body1)
+                Text("\u2715", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }
@@ -117,7 +113,7 @@ private fun LabeledTextField(value: String, width: Dp, onCommit: (String) -> Uni
         onValueChange = { text = it; onCommit(it) },
         modifier = Modifier.width(width).padding(horizontal = 2.dp),
         singleLine = true,
-        textStyle = MaterialTheme.typography.caption,
+        textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
     )
 }
 
@@ -127,7 +123,7 @@ private fun OptionalNumericField(
     width: Dp,
     onCommit: (Double?) -> Unit,
 ) {
-    var text by remember(value) { mutableStateOf(value?.let { formatNumber(it) } ?: "") }
+    var text by remember(value) { mutableStateOf(value?.let { formatValue(it) } ?: "") }
     var isInvalid by remember { mutableStateOf(false) }
 
     OutlinedTextField(
@@ -150,9 +146,9 @@ private fun OptionalNumericField(
         modifier = Modifier.width(width).padding(horizontal = 2.dp),
         singleLine = true,
         isError = isInvalid,
-        textStyle = MaterialTheme.typography.caption,
+        textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
     )
 }
 
-private fun formatNumber(value: Double): String =
+private fun formatValue(value: Double): String =
     if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()

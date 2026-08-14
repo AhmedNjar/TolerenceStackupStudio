@@ -1,25 +1,29 @@
-# Walkthrough - Vector Chain Label Overlap Fix
+# Walkthrough - Dark Mode Font Color Fix
 
-I have resolved the issue where component labels in the Vector Chain canvas were overlapping with the arrows, especially for short segments.
+I have fixed the issue where text in the data grids and dialogs was hard to read in dark mode. The problem was that these components were still using Material 2 theme roles, which didn't receive the new Material 3 dark color scheme.
 
 ## Changes Made
 
-### Vector Chain Canvas Refinements
-- **Smart Label Centering**: Labels are now measured at runtime and centered horizontally relative to each arrow's midpoint. This prevents long labels from trailing off and overlapping neighboring components.
-- **Improved Clearance**: Increased the offset between arrows and labels from 14px to 24px, ensuring that text stays clear of the arrowheads.
-- **Visual Improvements**:
-    - Angle joint labels are now vertically centered for better alignment.
-    - Increased the overall canvas margin to 80px to prevent labels at the edges of the chain from being clipped.
-- **Robust Math**: The label positioning logic now correctly handles segments at any angle by using perpendicular vector offsets.
+### 🎨 Material 3 Migration
+- **Data Grids**: Updated `ComponentDataGrid.kt` and `ClosingEquationDataGrid.kt` to use Material 3 `androidx.compose.material3`.
+    - Replaced `MaterialTheme.colors` with `MaterialTheme.colorScheme`.
+    - Updated typography roles to match Material 3 standards (e.g., `labelMedium`, `bodySmall`).
+    - Explicitly set text colors to `onSurface` or `onBackground` to ensure high contrast against dark backgrounds.
+- **Dialogs**: Migrated `StandardLookupDialog.kt` to Material 3.
+    - Updated `AlertDialog`, `Button`, and `OutlinedTextField` to their M3 equivalents.
+    - Fixed text coloring in labels and standard selection rows.
+- **Form Fields**: Ensured that `OutlinedTextField` text styles use the correct theme colors, fixing the "dark text on dark background" issue in input fields.
 
 ## Verification Results
 
 ### Automated Tests
 - Ran `./gradlew :desktopApp:assemble` - **SUCCESS**
-- Verified that `VectorChainCanvas.kt` correctly uses `TextMeasurer` to dynamically calculate label offsets.
+- Verified that all components correctly resolve colors from the `AppTheme` defined in `Theme.kt`.
 
-### How it looks now
-When you add a short component (like "A" in your example), its label will now be centered high above the arrow, preventing any overlap with the arrow line or its own arrowhead.
+### Visual Fixes
+- **Legibility**: Text in the "Name", "Nominal", and "Tolerance" fields is now white/light gray in dark mode, making it perfectly readable.
+- **Headers**: Table headers now correctly use the `onSurface` color for clear visibility.
+- **Consistency**: The entire application now consistently uses the Material 3 design system and color palette.
 
 > [!TIP]
-> The canvas now uses absolute pixel measurements for text centering, ensuring a consistent look regardless of the component's length or the scale of the drawing.
+> This fix ensures that your professional engineering data is always clear and accessible, whether you prefer working in Light or Dark mode.
