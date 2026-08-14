@@ -1,40 +1,27 @@
-# Implementation Plan - Add Closing Equations Editor
+# Implementation Plan - Fix Vector Chain Label Overlaps
 
-The current UI lacks a way for users to define and edit "Closing Equations" (the resultant dimensions $Z$ being analyzed). The Python engine already expects these equations and uses them to calculate Worst Case, RSS, and Monte Carlo results.
+When multiple short components are placed in a sequence, their labels often overlap because they are all rendered at the same vertical offset. This is especially problematic for 1D/linear stack-ups where components are perfectly aligned.
 
 ## Analysis
-- **Engine Expectation**: The engine expects `AnalyzeStackupRequestDto` to contain a list of `ClosingEquationDto` objects.
-- **Closing Equation Structure**:
-    - `label`: A human-readable name (e.g., "Z1", "Gap").
-    - `expression`: A mathematical formula using component labels (e.g., `A + B - D`).
-    - `specLimits`: Upper and Lower Specification Limits (USL/LSL) used for yield calculations and pass/fail analysis.
-- **UI Gap**: The main screen has a grid for components but no editor for closing equations.
+- **Current Behavior**: Every linear component label is offset by a fixed distance (24px) in the perpendicular direction (usually "up" for horizontal chains).
+- **Issue**: If the component length is shorter than the label width, the labels for consecutive components will collide.
+- **Proposed Solution**: Stagger the labels by alternating their position above and below the chain segments. Component 1 will be above, Component 2 below, Component 3 above, and so on.
 
 ## Proposed Changes
 
 ### [desktopApp](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp)
 
-#### [MODIFY] [StackupViewModel.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/StackupViewModel.kt)
-- Add `addClosingEquation`, `removeClosingEquation`, and `updateClosingEquation` methods to manage the `closingEquations` list.
-
-#### [NEW] [ClosingEquationDataGrid.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/datagrid/ClosingEquationDataGrid.kt)
-- Create a new data grid component similar to `ComponentDataGrid` for managing closing equations.
-- Fields to include: Label, Equation (Expression), LSL, and USL.
-
-#### [MODIFY] [main.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/main.kt)
-- Update the layout to include the `ClosingEquationDataGrid` below the component grid.
+#### [MODIFY] [VectorChainCanvas.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/canvas/VectorChainCanvas.kt)
+- Update `buildElements` to alternate the label offset direction for `LINEAR` components.
+- Use a counter to track the sequence of linear components and flip the perpendicular offset multiplier based on whether the count is even or odd.
+- Ensure that `AngleJoint` labels are also positioned to avoid conflict with staggered segment labels.
 
 ## Verification Plan
 
 ### Automated Tests
-- Build the project using `./gradlew :desktopApp:assemble` to ensure no syntax errors.
-- Run the app using `./gradlew :desktopApp:run` and verify:
-    1. A new grid for "Closing Equations" appears.
-    2. Equations can be added, removed, and edited.
-    3. Running an analysis uses the user-defined equations and displays results in the Results panel.
+- Build the project using `./gradlew :desktopApp:assemble`.
 
 ### Manual Verification
-- Add components with labels `A` and `B`.
-- Add a closing equation with label `Z` and expression `A - B`.
-- Set USL and LSL for `Z`.
-- Run analysis and verify that the results for `Z` reflect the nominal values and tolerances of `A` and `B`.
+- Add 4 components of the same short length (e.g., 10mm).
+- Verify in the UI that labels alternate between being above and below the line.
+- Verify that the labels no longer overlap.

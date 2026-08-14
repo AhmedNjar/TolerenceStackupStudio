@@ -74,18 +74,30 @@ fun VectorChainCanvas(
                     is CanvasElement.Segment -> {
                         drawLine(color, element.start, element.end, strokeWidth, cap = StrokeCap.Round)
                         drawArrowHead(element.start, element.end, color)
+                        
+                        val textStyle = TextStyle(fontSize = 11.sp, color = color)
+                        val textLayout = textMeasurer.measure(element.label, textStyle)
                         drawText(
                             textMeasurer, element.label,
-                            topLeft = element.labelPosition,
-                            style = TextStyle(fontSize = 11.sp, color = color),
+                            topLeft = Offset(
+                                element.labelPosition.x - textLayout.size.width / 2f,
+                                element.labelPosition.y - textLayout.size.height / 2f
+                            ),
+                            style = textStyle,
                         )
                     }
                     is CanvasElement.AngleJoint -> {
                         drawCircle(color, radius = if (selected) 8f else 6f, center = element.center)
+                        
+                        val textStyle = TextStyle(fontSize = 11.sp, color = color)
+                        val textLayout = textMeasurer.measure(element.label, textStyle)
                         drawText(
                             textMeasurer, element.label,
-                            topLeft = element.labelPosition,
-                            style = TextStyle(fontSize = 11.sp, color = color),
+                            topLeft = Offset(
+                                element.labelPosition.x, // keep joint labels slightly offset to the right
+                                element.labelPosition.y - textLayout.size.height / 2f
+                            ),
+                            style = textStyle,
                         )
                     }
                 }
@@ -138,7 +150,7 @@ private fun computeLayout(components: List<ComponentDto>, widthPx: Float, height
     val rawWidth = max(maxX - minX, 0.001f)
     val rawHeight = max(maxY - minY, 0.001f)
 
-    val marginPx = 60f
+    val marginPx = 80f
     val scale = minOf(
         (widthPx - 2 * marginPx) / rawWidth,
         (heightPx - 2 * marginPx) / rawHeight,
@@ -192,7 +204,7 @@ private fun buildElements(components: List<ComponentDto>, scale: Float, origin: 
                     componentId = c.id,
                     center = cursor,
                     label = label,
-                    labelPosition = Offset(cursor.x + 10f, cursor.y + 10f),
+                    labelPosition = Offset(cursor.x + 12f, cursor.y + 12f),
                 )
             )
             headingRad += Math.toRadians(c.nominal)
@@ -206,7 +218,7 @@ private fun buildElements(components: List<ComponentDto>, scale: Float, origin: 
             // Offset the label perpendicular to the segment so it doesn't sit
             // on top of the line itself.
             val perp = Offset(-sin(headingRad).toFloat(), -cos(headingRad).toFloat())
-            val labelPos = Offset(mid.x + perp.x * 14f, mid.y + perp.y * 14f - 14f)
+            val labelPos = Offset(mid.x + perp.x * 24f, mid.y + perp.y * 24f)
 
             elements.add(
                 CanvasElement.Segment(

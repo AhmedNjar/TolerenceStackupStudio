@@ -34,6 +34,7 @@ import com.openamr.tolerencestackupstudio.engine.protocol.dto.GenerateReportResp
 import com.openamr.tolerencestackupstudio.ui.StackupViewModel
 import com.openamr.tolerencestackupstudio.ui.StandardLookupDialog
 import com.openamr.tolerencestackupstudio.ui.canvas.VectorChainCanvas
+import com.openamr.tolerencestackupstudio.ui.datagrid.ClosingEquationDataGrid
 import com.openamr.tolerencestackupstudio.ui.datagrid.ComponentDataGrid
 import com.openamr.tolerencestackupstudio.ui.results.ResultsPanel
 import kotlinx.coroutines.CoroutineScope
@@ -106,12 +107,15 @@ private fun MainContent(
                     viewModel = vm,
                     onOpenStandardLookup = { componentId -> standardLookupComponentId = componentId },
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Closing Equations (Resultants Z)", style = MaterialTheme.typography.h6)
+                ClosingEquationDataGrid(viewModel = vm)
             }
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text("Vector Chain", style = MaterialTheme.typography.h6)
                 VectorChainCanvas(
-                    components = vm.components,
+                    components = vm.components.toList(),
                     selectedComponentId = vm.selectedComponentId,
                     onSelect = { vm.selectComponent(it) },
                 )
@@ -120,7 +124,11 @@ private fun MainContent(
 
         Spacer(modifier = Modifier.height(8.dp))
         Text("Results", style = MaterialTheme.typography.h6)
-        ResultsPanel(vm.lastResult)
+        ResultsPanel(
+            result = vm.lastResult,
+            getComponentLabel = { id -> vm.components.find { it.id == id }?.label ?: id },
+            getClosingLabel = { id -> vm.closingEquations.find { it.id == id }?.label ?: id },
+        )
     }
 
     val lookupId = standardLookupComponentId

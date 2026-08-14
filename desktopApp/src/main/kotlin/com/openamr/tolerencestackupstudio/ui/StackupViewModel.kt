@@ -83,6 +83,25 @@ class StackupViewModel(private val engineClient: EngineClient) {
         if (index >= 0) components[index] = transform(components[index])
     }
 
+    fun addClosingEquation() {
+        closingEquations.add(
+            ClosingEquationDto(
+                id = newId(),
+                label = "Z${closingEquations.size + 1}",
+                expression = "",
+            )
+        )
+    }
+
+    fun removeClosingEquation(id: String) {
+        closingEquations.removeAll { it.id == id }
+    }
+
+    fun updateClosingEquation(id: String, transform: (ClosingEquationDto) -> ClosingEquationDto) {
+        val index = closingEquations.indexOfFirst { it.id == id }
+        if (index >= 0) closingEquations[index] = transform(closingEquations[index])
+    }
+
     /** Applies an ISO286/ISO2768 lookup result to a component's tolerances,
      * called after StandardLookupDialog gets a result back from the engine. */
     fun applyStandardFit(componentId: String, standard: String, designationOrClass: String, upperTol: Double, lowerTol: Double) {

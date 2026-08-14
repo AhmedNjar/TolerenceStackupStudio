@@ -14,7 +14,11 @@ import com.openamr.tolerencestackupstudio.engine.protocol.dto.AnalyzeStackupResp
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.ClosingDimensionResultDto
 
 @Composable
-fun ResultsPanel(result: AnalyzeStackupResponseDto?) {
+fun ResultsPanel(
+    result: AnalyzeStackupResponseDto?,
+    getComponentLabel: (String) -> String,
+    getClosingLabel: (String) -> String,
+) {
     if (result == null) {
         Text("Run an analysis to see results here.", modifier = Modifier.padding(8.dp), style = MaterialTheme.typography.caption)
         return
@@ -23,7 +27,7 @@ fun ResultsPanel(result: AnalyzeStackupResponseDto?) {
     LazyColumn(modifier = Modifier.padding(8.dp)) {
         items(result.results) { closing ->
             Column {
-                ClosingResultCard(closing)
+                ClosingResultCard(closing, getComponentLabel, getClosingLabel)
                 Divider(modifier = Modifier.padding(vertical = 6.dp))
             }
         }
@@ -31,9 +35,13 @@ fun ResultsPanel(result: AnalyzeStackupResponseDto?) {
 }
 
 @Composable
-private fun ClosingResultCard(closing: ClosingDimensionResultDto) {
+private fun ClosingResultCard(
+    closing: ClosingDimensionResultDto,
+    getComponentLabel: (String) -> String,
+    getClosingLabel: (String) -> String,
+) {
     Column {
-        Text(closing.closingId, style = MaterialTheme.typography.subtitle2)
+        Text(getClosingLabel(closing.closingId), style = MaterialTheme.typography.subtitle2)
 
         if (closing.error != null) {
             Text("Error: ${closing.error}", color = MaterialTheme.colors.error, style = MaterialTheme.typography.caption)
@@ -65,12 +73,13 @@ private fun ClosingResultCard(closing: ClosingDimensionResultDto) {
                 HistogramChart(mc.histogram, modifier = Modifier.padding(top = 4.dp))
             }
             if (closing.contributions.isNotEmpty()) {
+                val topContributorId = closing.contributions.first().componentId
                 Text(
-                    "Top contributor: ${closing.contributions.first().componentId} " +
+                    "Top contributor: ${getComponentLabel(topContributorId)} " +
                         "(${fmt(closing.contributions.first().contributionPct)}%)",
                     style = MaterialTheme.typography.body2,
                 )
-                ParetoChart(closing.contributions, modifier = Modifier.padding(top = 4.dp))
+                ParetoChart(closing.contributions, getComponentLabel, modifier = Modifier.padding(top = 4.dp))
             }
         }
     }

@@ -1,24 +1,25 @@
-# Walkthrough - Fix Main Class Not Found Error
+# Walkthrough - Vector Chain Label Overlap Fix
 
-The build error `Could not find or load main class com.openamr.tolerencestackupstudio.MainKt` has been resolved by unifying the package structure in the `desktopApp` module.
+I have resolved the issue where component labels in the Vector Chain canvas were overlapping with the arrows, especially for short segments.
 
 ## Changes Made
 
-### desktopApp Refactoring
-- All source files in `desktopApp` were moved from `com.architech.tolerencestackupstudio` to `com.openamr.tolerencestackupstudio`.
-- Package declarations and imports in all 18 Kotlin files were updated to match the new structure.
-- The directory structure now correctly reflects the package name: `desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/`.
-
-### Engine Startup Fix
-- Modified `EngineProcessManager.kt` to robustly locate the project root.
-- Updated the engine process working directory to use an absolute path (`projectRoot/engine/src`), preventing "directory name is invalid" errors when launched from sub-modules.
-- Added support for using the Python executable within the `engine/.venv` directory, improving reliability in development environments where `python` might not be in the global PATH.
+### Vector Chain Canvas Refinements
+- **Smart Label Centering**: Labels are now measured at runtime and centered horizontally relative to each arrow's midpoint. This prevents long labels from trailing off and overlapping neighboring components.
+- **Improved Clearance**: Increased the offset between arrows and labels from 14px to 24px, ensuring that text stays clear of the arrowheads.
+- **Visual Improvements**:
+    - Angle joint labels are now vertically centered for better alignment.
+    - Increased the overall canvas margin to 80px to prevent labels at the edges of the chain from being clipped.
+- **Robust Math**: The label positioning logic now correctly handles segments at any angle by using perpendicular vector offsets.
 
 ## Verification Results
 
 ### Automated Tests
 - Ran `./gradlew :desktopApp:assemble` - **SUCCESS**
-- Verified `EngineProcessManager.kt` compiles with the new path resolution logic.
+- Verified that `VectorChainCanvas.kt` correctly uses `TextMeasurer` to dynamically calculate label offsets.
 
-> [!IMPORTANT]
-> The `:desktopApp:run` task is currently blocked by a configuration error in the `androidApp` module (`AndroidLocationsBuildService` failure with AGP 9.0.1). This is unrelated to the desktop app's code but prevents Gradle from completing the configuration phase. Once the Android environment issue is resolved, the desktop engine will start correctly using the fixed paths.
+### How it looks now
+When you add a short component (like "A" in your example), its label will now be centered high above the arrow, preventing any overlap with the arrow line or its own arrowhead.
+
+> [!TIP]
+> The canvas now uses absolute pixel measurements for text centering, ensuring a consistent look regardless of the component's length or the scale of the drawing.

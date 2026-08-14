@@ -19,7 +19,11 @@ import com.openamr.tolerencestackupstudio.engine.protocol.dto.ContributionDto
 /** Bars = per-component variance contribution %, line = cumulative %,
  * matching the same shape as the PDF report's matplotlib Pareto chart. */
 @Composable
-fun ParetoChart(contributions: List<ContributionDto>, modifier: Modifier = Modifier) {
+fun ParetoChart(
+    contributions: List<ContributionDto>,
+    getComponentLabel: (String) -> String,
+    modifier: Modifier = Modifier
+) {
     val textMeasurer = rememberTextMeasurer()
     if (contributions.isEmpty()) return
 
@@ -36,15 +40,16 @@ fun ParetoChart(contributions: List<ContributionDto>, modifier: Modifier = Modif
         val maxPct = 100.0
 
         sorted.forEachIndexed { i, c ->
+            val label = getComponentLabel(c.componentId)
             val barHeight = (chartHeight * (c.contributionPct / maxPct)).toFloat()
             drawRect(
                 color = Color(0xFF546E7A),
                 topLeft = Offset(i * barWidth, chartHeight - barHeight),
                 size = Size(barWidth * 0.7f, barHeight),
             )
-            val labelWidth = textMeasurer.measure(c.componentId).size.width
+            val labelWidth = textMeasurer.measure(label).size.width
             drawText(
-                textMeasurer, c.componentId,
+                textMeasurer, label,
                 topLeft = Offset(i * barWidth + barWidth * 0.35f - labelWidth / 2f, chartHeight + 4f),
                 style = TextStyle(fontSize = 10.sp, color = Color.Gray),
             )
