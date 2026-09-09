@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import com.openamr.tolerencestackupstudio.engine.EngineClient
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.*
+import com.openamr.tolerencestackupstudio.project.ProjectFileDto
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
@@ -115,10 +116,11 @@ class StackupViewModel(
     }
 
     fun addClosingEquation() {
+        val nextLabel = nextAvailableClosingLabel()
         closingEquations.add(
             ClosingEquationDto(
                 id = newId(),
-                label = "Z${closingEquations.size + 1}",
+                label = nextLabel,
                 name = "",
                 expression = "",
             )
@@ -138,6 +140,33 @@ class StackupViewModel(
     fun getCalculatedNominal(closingId: String): Double? {
         val result = lastResult?.results?.find { it.closingId == closingId } ?: return null
         return result.worstCase?.nominal ?: result.rss?.nominal
+    }
+
+    /** Snapshot of everything Save Project needs to write to disk. */
+    fun toProjectFile(chainId: String = "main-chain"): ProjectFileDto = ProjectFileDto(
+        chainId = chainId,
+        components = components.toList(),
+        closingEquations = closingEquations.toList(),
+        selectedMethods = selectedMethods.toList(),
+    )
+
+    /** Replaces all current state with a loaded project — used by Open Project. */
+    fun loadProject(project: ProjectFileDto) {
+        components.clear()
+        components.addAll(project.components)
+        closingEquations.clear()
+        closingEquations.addAll(project.closingEquations)
+        selectedMethods = project.selectedMethods.toSet()
+        selectedComponentId = null
+        lastResult = null
+        lastError = null
+    }
+
+    private fun nextAvailableClosingLabel(): String {
+        var n = closingEquations.size + 1
+        val used = closingEquations.map { it.label }.toSet()
+        while ("Z$n" in used) n++
+        return "Z$n"
     }
 
     /** Applies an ISO286/ISO2768 lookup result to a component's tolerances,

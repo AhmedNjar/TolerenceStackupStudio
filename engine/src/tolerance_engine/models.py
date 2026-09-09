@@ -79,7 +79,6 @@ class SpecLimits(BaseModel):
 class ClosingEquation(BaseModel):
     id: str
     label: str
-    name: str = ""
     expression: str
     specLimits: Optional[SpecLimits] = None
 

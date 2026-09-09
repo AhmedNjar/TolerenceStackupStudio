@@ -1,50 +1,57 @@
-# Implementation Plan - UI/UX Overhaul & Navigation
+# Implementation Plan - Move and Merge Temp Files
 
-This plan outlines a complete redesign of the application's user interface to improve aesthetics, usability, and responsiveness, including a new multi-screen navigation flow.
+This plan outlines the integration of valuable new features found in the `temp` directory (Single Instance Lock, Project Saving, and Equation Highlighting) while preserving the modern Material 3 UI/UX and path fixes recently implemented.
 
 ## User Review Required
 
-> [!IMPORTANT]
-> The UI will switch from a single-screen layout to a two-screen layout: **Editor** and **Results**. Navigation to Results will happen automatically after a successful analysis.
-
-> [!TIP]
-> We will introduce a **Dark/Light mode** toggle and modernize the styling using Material 3 principles (large rounded corners, refined typography, and subtle animations).
+> [!WARNING]
+> I have identified that many files in the `temp` directory are older versions using Material 2. I will **not** overwrite the current modern files with these older versions. Instead, I will surgically extract the new features and merge them into the current codebase.
 
 ## Proposed Changes
 
-### [desktopApp](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp)
+### [New Components]
 
-#### [NEW] [Theme.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/theme/Theme.kt)
-- Define a modern color palette for both light and dark modes.
-- Configure `Typography` with a clean, professional font stack.
-- Set `Shapes` with modern rounded corners (12dp - 16dp).
+#### [NEW] [SingleInstanceLock.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/SingleInstanceLock.kt)
+- Move from `temp` and fix package to `com.openamr.tolerencestackupstudio`.
+- This utility prevents multiple app instances and provides a PID-aware warning.
+
+#### [NEW] [ProjectFileDto.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/project/ProjectFileDto.kt)
+- Move from `temp/project` and fix package.
+- Defines the `.tsproj` JSON format for saving/loading work.
+
+#### [NEW] [EquationDisplay.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/EquationDisplay.kt)
+- Move from `temp/ui` and fix package.
+- **Enhancement**: Migrate to Material 3 and ensure clickable labels select components in the shared state.
+
+---
+
+### [Logic Updates]
 
 #### [MODIFY] [StackupViewModel.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/StackupViewModel.kt)
-- Add `currentScreen` state (enum: `EDITOR`, `RESULTS`).
-- Update `runAnalysis()` to automatically switch to `RESULTS` screen upon success.
-- Add a `backToEditor()` method.
+- Integrate `toProjectFile()` and `loadProject(ProjectFileDto)` methods.
+- Add `nextAvailableClosingLabel()` logic to ensure unique auto-labels for equations.
 
 #### [MODIFY] [main.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/main.kt)
-- Implement `AnimatedContent` to transition between `EditorScreen` and `ResultsScreen`.
-- Add a top app bar with the application title and a **Dark Mode toggle**.
-- Extract `EditorScreen` and `ResultsScreen` into dedicated composables.
+- **Startup**: Add `SingleInstanceLock.acquire()` check before launching the Compose app.
+- **UI**: Add `ProjectControls` (Save/Open Project) to the `EditorScreen` toolbar.
+- **Window**: Add Fullscreen toggle button and set a minimum window dimension (900x600).
+- **Cleanup**: Ensure `SingleInstanceLock.release()` and explicit process cleanup on close.
 
-#### [MODIFY] [ResultsPanel.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/results/ResultsPanel.kt)
-- Redesign as a full-screen experience.
-- Add a "Back to Editor" button.
-- Improve chart aesthetics (gradients, smoother lines).
+---
 
-#### [REFINEMENT] Data Grids
-- Clean up the table headers and cell padding.
-- Use card-based layouts for sections to create visual depth.
+### [UI Enhancement]
+
+#### [MODIFY] [ClosingEquationDataGrid.kt](file:///C:/Users/Lenovo/AndroidStudioProjects/TolerenceStackupStudio/desktopApp/src/main/kotlin/com/openamr/tolerencestackupstudio/ui/datagrid/ClosingEquationDataGrid.kt)
+- Integrate `EquationDisplay` into the equation rows to provide live syntax highlighting and interactivity.
 
 ## Verification Plan
 
 ### Automated Tests
 - Build the project using `./gradlew :desktopApp:assemble`.
+- Verify no package mismatch errors.
 
 ### Manual Verification
-1. **Theme Test**: Toggle between Dark and Light mode; verify all text remains legible.
-2. **Navigation Test**: Click "Run Analysis" -> verify automatic transition to Results screen.
-3. **Transition Test**: Verify that the screen change is animated (e.g., slide or fade).
-4. **UX Test**: Verify that the new layout feels less "crowded" on various window sizes.
+1. **Instance Lock**: Try to launch the app twice; verify the warning dialog appears.
+2. **Persistence**: Add components/equations, Save Project to a `.tsproj` file, clear everything, and Load Project. Verify state is restored.
+3. **Interactivity**: Type a formula (e.g., `A + B`); verify labels `A` and `B` are highlighted and clicking them selects the row in the component grid.
+4. **Fullscreen**: Test the new Fullscreen toggle.

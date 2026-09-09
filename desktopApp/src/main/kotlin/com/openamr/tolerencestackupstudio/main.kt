@@ -12,13 +12,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import com.openamr.tolerencestackupstudio.engine.EngineClient
 import com.openamr.tolerencestackupstudio.engine.EngineProcessManager
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.AnalysisMethod
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.AnalysisOptionsDto
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.GenerateReportRequestDto
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.GenerateReportResponseDto
+import com.openamr.tolerencestackupstudio.project.ProjectFileDto
 import com.openamr.tolerencestackupstudio.ui.AppScreen
 import com.openamr.tolerencestackupstudio.ui.StackupViewModel
 import com.openamr.tolerencestackupstudio.ui.StandardLookupDialog
@@ -29,16 +32,36 @@ import com.openamr.tolerencestackupstudio.ui.results.ResultsPanel
 import com.openamr.tolerencestackupstudio.ui.theme.AppTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import java.awt.Dimension
 import java.awt.FileDialog
 import java.awt.Frame
+import javax.swing.JOptionPane
 
-fun main() = application {
+fun main() {
+    when (val lockResult = SingleInstanceLock.acquire()) {
+        is SingleInstanceLock.AcquireResult.AlreadyRunning -> {
+            JOptionPane.showMessageDialog(
+                null,
+                "Tolerance Stack-up Studio is already running (process ${lockResult.pid}).\n" +
+                    "Close the existing window before starting a new one.",
+                "Already Running",
+                JOptionPane.WARNING_MESSAGE,
+            )
+            return
+        }
+        SingleInstanceLock.AcquireResult.Acquired -> runComposeApp()
+    }
+}
+
+private fun runComposeApp() = application {
     var engineClient by remember { mutableStateOf<EngineClient?>(null) }
     var viewModel by remember { mutableStateOf<StackupViewModel?>(null) }
     var startupError by remember { mutableStateOf<String?>(null) }
     val processManager = remember { EngineProcessManager() }
     val scope = rememberCoroutineScope()
     var darkTheme by remember { mutableStateOf(false) }
+    val windowState = rememberWindowState(width = 1280.dp, height = 800.dp)
 
     LaunchedEffect(Unit) {
         try {
@@ -51,7 +74,21 @@ fun main() = application {
         }
     }
 
-    Window(onCloseRequest = ::exitApplication, title = "Tolerance Stack-up Studio") {
+    fun shutdownAndExit() {
+        processManager.stop()
+        SingleInstanceLock.release()
+        exitApplication()
+    }
+
+    Window(
+        onCloseRequest = ::shutdownAndExit,
+        title = "Tolerance Stack-up Studio",
+        state = windowState
+    ) {
+        LaunchedEffect(Unit) {
+            window.minimumSize = Dimension(900, 600)
+        }
+
         val vm = viewModel
         val client = engineClient
 
@@ -60,7 +97,7 @@ fun main() = application {
                 when {
                     startupError != null -> StartupError(startupError!!)
                     vm == null || client == null -> StartingEngine()
-                    else -> MainScaffold(vm, client, scope, darkTheme, onThemeToggle = { darkTheme = !darkTheme })
+                    else -> MainScaffold(vm, client, scope, darkTheme, onThemeToggle = { darkTheme = !darkTheme }, windowState)
                 }
             }
         }
@@ -90,13 +127,23 @@ private fun MainScaffold(
     client: EngineClient,
     scope: CoroutineScope,
     darkTheme: Boolean,
-    onThemeToggle: () -> Unit
+    onThemeToggle: () -> Unit,
+    windowState: androidx.compose.ui.window.WindowState
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Tolerance Stack-up Studio") },
                 actions = {
+                    IconButton(onClick = {
+                        windowState.placement = if (windowState.placement == WindowPlacement.Fullscreen) {
+                            WindowPlacement.Floating
+                        } else {
+                            WindowPlacement.Fullscreen
+                        }
+                    }) {
+                        Icon(if (windowState.placement == WindowPlacement.Fullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen, contentDescription = "Fullscreen")
+                    }
                     IconButton(onClick = onThemeToggle) {
                         Icon(if (darkTheme) Icons.Default.LightMode else Icons.Default.DarkMode, contentDescription = "Toggle Theme")
                     }
@@ -141,7 +188,11 @@ private fun EditorScreen(vm: StackupViewModel, client: EngineClient, scope: Coro
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    AnalysisControls(vm, scope)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AnalysisControls(vm, scope)
+                        Spacer(modifier = Modifier.weight(1f))
+                        ProjectControls(vm)
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     ExportControls(vm, client, scope)
                 }
@@ -348,12 +399,67 @@ private fun ExportControls(vm: StackupViewModel, client: EngineClient, scope: Co
     }
 }
 
+/** Save/Open the current chain as a local .tsproj (JSON) file. */
+@Composable
+private fun ProjectControls(vm: StackupViewModel) {
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+    val json = remember { Json { prettyPrint = true; ignoreUnknownKeys = true } }
+
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = {
+            val path = chooseSavePath(suggestedName = "project.tsproj", extension = "tsproj") ?: return@OutlinedButton
+            try {
+                java.io.File(path).writeText(json.encodeToString(ProjectFileDto.serializer(), vm.toProjectFile()))
+                statusMessage = "Project Saved"
+            } catch (t: Throwable) {
+                statusMessage = "Save Failed"
+            }
+        }, shape = MaterialTheme.shapes.small) {
+            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Save Project")
+        }
+
+        OutlinedButton(onClick = {
+            val path = chooseOpenPath("tsproj") ?: return@OutlinedButton
+            try {
+                val project = json.decodeFromString(ProjectFileDto.serializer(), java.io.File(path).readText())
+                vm.loadProject(project)
+                statusMessage = "Project Loaded"
+            } catch (t: Throwable) {
+                statusMessage = "Load Failed"
+            }
+        }, shape = MaterialTheme.shapes.small) {
+            Icon(Icons.Default.FileOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Open Project")
+        }
+
+        statusMessage?.let {
+            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            LaunchedEffect(it) {
+                kotlinx.coroutines.delay(3000)
+                statusMessage = null
+            }
+        }
+    }
+}
+
 private fun chooseSavePath(suggestedName: String, extension: String): String? {
-    val dialog = FileDialog(null as Frame?, "Save $extension report", FileDialog.SAVE)
+    val dialog = FileDialog(null as Frame?, "Save $extension file", FileDialog.SAVE)
     dialog.file = suggestedName
     dialog.isVisible = true
     val directory = dialog.directory ?: return null
     val file = dialog.file ?: return null
     val fileName = if (file.endsWith(".$extension")) file else "$file.$extension"
     return directory + fileName
+}
+
+private fun chooseOpenPath(extension: String): String? {
+    val dialog = FileDialog(null as Frame?, "Open $extension file", FileDialog.LOAD)
+    dialog.setFilenameFilter { _, name -> name.endsWith(".$extension") }
+    dialog.isVisible = true
+    val directory = dialog.directory ?: return null
+    val file = dialog.file ?: return null
+    return directory + file
 }

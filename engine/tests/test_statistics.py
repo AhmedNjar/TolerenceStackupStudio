@@ -107,3 +107,25 @@ def test_unknown_label_raises_expression_error():
     components = [_linear("A", 1.0, 0.1, 0.1)]
     with pytest.raises(ExpressionError):
         worst_case("A - Q", components)
+
+
+def test_implicit_multiplication_is_supported():
+    # A user typing a chain equation by hand naturally writes "2A" or
+    # "A cos(B)" without an explicit '*' — this must work, not just the
+    # fully-explicit "2*A"/"A*cos(B)" form.
+    components = [_linear("A", 3.0, 0.1, 0.1), _linear("B", 4.0, 0.1, 0.1)]
+    implicit = worst_case("2A", components)
+    explicit = worst_case("2*A", components)
+    assert implicit["nominal"] == pytest.approx(explicit["nominal"])
+    assert implicit["nominal"] == pytest.approx(6.0)
+
+
+def test_caret_is_supported_as_power():
+    # Engineers commonly write '^' for exponentiation outside of code;
+    # there's no legitimate XOR use case in this app's expressions, so
+    # treating '^' as power rather than Python's bitwise XOR is unambiguous.
+    components = [_linear("A", 3.0, 0.1, 0.1), _linear("B", 4.0, 0.1, 0.1)]
+    caret = worst_case("sqrt(A^2 + B^2)", components)
+    double_star = worst_case("sqrt(A**2 + B**2)", components)
+    assert caret["nominal"] == pytest.approx(double_star["nominal"])
+    assert caret["nominal"] == pytest.approx(5.0)

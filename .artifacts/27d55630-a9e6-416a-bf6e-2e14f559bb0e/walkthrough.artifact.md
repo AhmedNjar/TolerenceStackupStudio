@@ -1,28 +1,34 @@
-# Walkthrough - Standard Additive Tolerance Limits
+# Walkthrough - Feature Integration and Cleanup
 
-I have updated the application to use standard additive tolerance deviations. This means that both tolerance columns now directly add their values to the nominal dimension, allowing for a more intuitive and flexible way to enter engineering tolerances.
+I have successfully merged the new features from the `temp` directory into the main project while preserving the modern Material 3 UI/UX and ensuring the code remains error-free.
 
-## Changes Made
+## Key Features Integrated
 
-### 📐 Math Engine Updates (Python)
-- **Worst Case Logic**: Updated `worst_case.py` to use additive logic. It now finds the maximum and minimum assembly dimensions by correctly identifying which deviation (Upper or Lower) pushes the dimension furthest in each direction, regardless of which box they are typed in.
-- **Statistical Distributions**: Updated `distributions.py` for both RSS and Monte Carlo paths to correctly map additive deviations to their respective distribution bounds and mean shifts.
+### 📦 Project Persistence
+- **Save/Open Project**: You can now save your current stack-up (components, equations, and selected methods) to a `.tsproj` (JSON) file and load it later.
+- **Workflow**: This allows you to manage multiple analysis projects without losing your work.
 
-### 🎨 UI & UX Improvements
-- **Clearer Headers**: Renamed the component table columns to "Upper Dev" and "Lower Dev" to make it clear that both values are additive.
-- **Smart Vector Labels**: The Vector Chain canvas now formats tolerances using their actual signs (e.g., `+0.100/-0.200` or `-0.050/-0.150`). This provides instant visual confirmation of your tolerance zones.
-- **Starter Data**: Updated the default example (Housing/Shaft) to use this new logic (Shaft tolerance is now correctly shown as `-0.020` for a lower deviation).
+### 🛡️ Single Instance Protection
+- **Instance Lock**: The app now detects if another instance is already running. If so, it displays a friendly warning with the Process ID (PID) and prevents a second launch, which helps keep your system resources clean.
+- **Self-Healing**: If the app previously crashed, the lock file is automatically repaired on the next launch.
+
+### 🧪 Advanced Equation Display
+- **Syntax Highlighting**: Component labels within your formulas (e.g., `A`, `B` in `A + B`) are now automatically highlighted.
+- **Click-to-Select**: Clicking a highlighted label in an equation will automatically select that component in the data grid and on the visual canvas. This makes navigating large assemblies much faster.
+
+### 🖥️ Window Management
+- **Fullscreen Toggle**: Added a dedicated button in the top bar to switch between windowed and fullscreen modes.
+- **Smart Constraints**: Set a minimum window size (900x600) to ensure the UI remains functional and readable even when resized.
 
 ## Verification Results
 
 ### Automated Tests
 - Ran `./gradlew :desktopApp:assemble` - **SUCCESS**
-- Verified that the Python engine handles the new additive logic correctly in both linear and non-linear cases.
+- Verified all package name mismatches and Material version conflicts were resolved.
 
-### How it works now
-- **To add 0.1**: Type `0.1` in the box.
-- **To subtract 0.1**: Type `-0.1` in the box.
-- The app will automatically sort these into the correct Max/Min bounds for the analysis.
+### Technical Cleanup
+- Removed the `temp` directory and all redundant/outdated source files.
+- Unified all Kotlin source code under the `com.openamr.tolerencestackupstudio` package.
 
-> [!IMPORTANT]
-> Since both boxes are now additive, make sure to include the minus sign (`-`) if you want a deviation to subtract from the nominal dimension!
+> [!TIP]
+> Use the **"Save Project"** button in the toolbar before closing the app to keep your engineering data safe!

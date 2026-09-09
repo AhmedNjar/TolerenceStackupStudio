@@ -23,7 +23,7 @@ case "$(uname -m)" in
   *)             ARCH="x64" ;;
 esac
 
-DEST="../composeApp/src/desktopMain/resources/engine-dist/${OS}-${ARCH}"
+DEST="../desktopApp/src/main/resources/engine-dist/${OS}-${ARCH}"
 mkdir -p "$DEST"
 cp dist/tolerance-engine "$DEST/"
 

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.ClosingEquationDto
 import com.openamr.tolerencestackupstudio.engine.protocol.dto.SpecLimitsDto
+import com.openamr.tolerencestackupstudio.ui.EquationDisplay
 import com.openamr.tolerencestackupstudio.ui.StackupViewModel
 
 private val COLUMN_WIDTHS = listOf(50, 140, 180, 90, 80, 80, 40).map { it.dp }
@@ -42,6 +43,7 @@ fun ClosingEquationDataGrid(viewModel: StackupViewModel) {
                     EquationRow(
                         equation = equation,
                         calculatedNominal = nominal,
+                        viewModel = viewModel,
                         onChange = { updated -> viewModel.updateClosingEquation(equation.id) { updated } },
                         onDelete = { viewModel.removeClosingEquation(equation.id) },
                     )
@@ -70,6 +72,7 @@ private fun HeaderRow() {
 private fun EquationRow(
     equation: ClosingEquationDto,
     calculatedNominal: Double?,
+    viewModel: StackupViewModel,
     onChange: (ClosingEquationDto) -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -87,11 +90,23 @@ private fun EquationRow(
             width = COLUMN_WIDTHS[1],
             onCommit = { onChange(equation.copy(name = it)) },
         )
-        LabeledTextField(
-            value = equation.expression,
-            width = COLUMN_WIDTHS[2],
-            onCommit = { onChange(equation.copy(expression = it)) },
-        )
+        Column(modifier = Modifier.width(COLUMN_WIDTHS[2])) {
+            LabeledTextField(
+                value = equation.expression,
+                width = COLUMN_WIDTHS[2],
+                onCommit = { onChange(equation.copy(expression = it)) },
+            )
+            if (equation.expression.isNotBlank()) {
+                Box(modifier = Modifier.padding(horizontal = 4.dp)) {
+                    EquationDisplay(
+                        expression = equation.expression,
+                        components = viewModel.components,
+                        selectedComponentId = viewModel.selectedComponentId,
+                        onSelectComponent = { viewModel.selectComponent(it) },
+                    )
+                }
+            }
+        }
         
         // Calculated Nominal (Read-only)
         OutlinedTextField(

@@ -235,6 +235,51 @@ second time through a mechanism nothing reads from.
 Repeat per target OS — there's no cross-compilation here; a macOS `.dmg`
 has to be built on macOS, a Windows `.msi` on Windows.
 
+## Post-Phase-5 — user feedback round
+
+Six items came back from real usage (with a MITCalc reference screenshot for
+context on the last few). Detail on each is in `docs/ARCHITECTURE.md` §6, §8,
+§9 — summarized here:
+
+1. **Implicit multiplication ("2A", "A cos(B)") and "^" for power now parse.**
+   Previously required explicit `2*A` / `A*cos(B)` / `A**2`. Tested against
+   the full existing suite (nothing regressed) plus new cases.
+2. **Save/Open Project** — `.tsproj` (plain JSON), via `ProjectFileDto` +
+   native file dialogs. Pure local file I/O, no engine round trip.
+3. **Background-process/"already running" bug — likely root cause found and
+   fixed, not just patched around:**
+   - A one-file PyInstaller build is two OS processes (bootloader + child);
+     confirmed with `ProcessHandle` that killing only the parent can leave
+     the child running — especially likely on Windows, where
+     `Process.destroy()` doesn't cascade to children the way Unix signals
+     sometimes do. Fixed by killing the whole `descendants()` tree.
+   - A Compose window closing doesn't guarantee the JVM exits (lingering
+     AWT/Skia threads). `onCloseRequest` now explicitly stops the engine and
+     calls `exitProcess(0)` rather than trusting `exitApplication()` alone.
+   - Added `SingleInstanceLock`: an accurate "already running (PID X)"
+     message on a genuine second launch, with automatic recovery from a
+     stale lock left by an abnormal previous exit.
+4. **Window resizing/fullscreen** — a minimum size (900×600) so the layout
+   can't break, plus an explicit Fullscreen/Exit Fullscreen button
+   (`WindowState.placement`). Free resizing and OS-native maximize already
+   worked; this rounds out the comfort/convenience ask.
+5. **Click a parameter in the Z equation → highlights it in the grid** (like
+   the reference screenshot's cell-reference highlighting) — new
+   `EquationDisplay` (clickable, color-coded tokens) and, since it didn't
+   exist yet, a full `ClosingEquationsPanel` for actually editing/adding Z
+   equations (there was previously no UI for this at all).
+6. **Results now shown with symbols, stacked vertically** — μ, σ, γ₁
+   (skewness), γ₂ (kurtosis), Cp, Cpk, one per row, MITCalc-style, replacing
+   the previous inline-sentence format. Z_min/Z_max deliberately kept as
+   plain text rather than Unicode subscripts — the closest true subscript
+   glyphs span two different Unicode blocks with uneven font support, and
+   this isn't worth a rendering risk I can't visually verify from here.
+
+Same caveat as every Kotlin change in this project: reviewed carefully, not
+compiler-verified (no JVM toolchain in this environment). The parser change
+(#1) is the one item in this round that's on the Python side and so has real
+passing tests behind it, same rigor as every other engine change.
+
 ## Known simplifications, called out explicitly
 
 - **Modified RSS shift factor default** is a documented heuristic (tapers

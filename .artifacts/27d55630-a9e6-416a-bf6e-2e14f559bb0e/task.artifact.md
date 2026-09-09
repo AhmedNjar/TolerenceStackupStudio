@@ -1,7 +1,6 @@
-- `[x]` Switch to Additive Tolerance Limits
-    - `[x]` Update `worst_case.py` in engine
-    - `[x]` Update `distributions.py` in engine
-    - `[x]` Update `ComponentDataGrid.kt` headers
-    - `[x]` Update `VectorChainCanvas.kt` label formatting
-    - `[x]` Update `StackupViewModel.kt` starter data
-    - `[x]` Verify build and math with additive logic
+- `[x]` Merge missing features from temp files
+    - `[x]` Integrate `SingleInstanceLock` for process management
+    - `[x]` Implement Project Save/Load (.tsproj) functionality
+    - `[x]` Integrate `EquationDisplay` with label highlighting and click-to-select
+    - `[x]` Add Fullscreen toggle and window constraints to `main.kt`
+    - `[x]` Cleanup and verify build

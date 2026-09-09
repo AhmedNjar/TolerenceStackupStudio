@@ -11,7 +11,7 @@ pip install -e ".[dev]"
 
 pyinstaller engine.spec --distpath dist --workpath build --noconfirm
 
-$dest = "../composeApp/src/desktopMain/resources/engine-dist/windows-x64"
+$dest = "../desktopApp/src/main/resources/engine-dist/windows-x64"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item "dist/tolerance-engine.exe" -Destination $dest
 

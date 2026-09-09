@@ -17,11 +17,21 @@ from __future__ import annotations
 import sympy as sp
 from sympy.parsing.sympy_parser import (
     convert_xor,
+    implicit_multiplication_application,
     parse_expr,
     standard_transformations,
 )
 
 from tolerance_engine.models import Component
+
+# standard_transformations alone requires an explicit '*' for every
+# multiplication and '**' for every power — reasonable for code, but a real
+# engineer typing a chain equation naturally writes "2A", "A cos(B)", or
+# "A^2" without thinking about it. implicit_multiplication_application
+# fixes the first two; convert_xor fixes the third (so '^' means power, not
+# Python's bitwise XOR — there's no legitimate use for XOR in this app's
+# expressions, so there's no ambiguity being traded away here).
+_TRANSFORMATIONS = standard_transformations + (implicit_multiplication_application, convert_xor)
 
 _ALLOWED_FUNCTIONS = {
     "sin": sp.sin, "cos": sp.cos, "tan": sp.tan,
@@ -55,7 +65,7 @@ def parse_expression(expression: str, symbols: dict[str, sp.Symbol]) -> sp.Expr:
             expression,
             local_dict=local_dict,
             global_dict=global_dict,
-            transformations=(*standard_transformations, convert_xor),
+            transformations=_TRANSFORMATIONS,
             evaluate=True,
         )
     except Exception as exc:  # noqa: BLE001 - re-raised as a domain-specific error
